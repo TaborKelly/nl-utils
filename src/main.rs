@@ -12,9 +12,7 @@ use pcap::*;
 
 extern crate byteorder;
 
-use std::io::Cursor;
-use byteorder::{NativeEndian, ReadBytesExt};
-
+#[allow(dead_code)]
 mod nl;
 
 #[derive(Debug)]
@@ -62,9 +60,10 @@ fn print_packets(path: String) {
         println!("packet.data.len() = {}", packet.data.len());
         println!("got packet! {:?}", packet);
 
-        let mut buf = Cursor::new(packet.data);
-        let num = buf.read_u32::<NativeEndian>().unwrap();
-        println!("num == {}", num);
+        // for the time being, assume that we are reading a pcap file in which case
+        // each packet starts with the "SLL cooked header"
+        let header = nl::read_header(&packet.data[nl::COOKED_HEADER_SIZE ..]);
+        println!("header =  {:?}", header);
     }
 }
 

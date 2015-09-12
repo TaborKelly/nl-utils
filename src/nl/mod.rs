@@ -7,3 +7,98 @@ mod genetlink;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 mod nl80211;
+
+use ::std::io::Cursor;
+use ::byteorder::{BigEndian, NativeEndian, ReadBytesExt};
+
+#[derive(Debug)]
+#[derive(Default)]
+pub struct Nlmsghdr {
+    pub nlmsg_len: u32,
+    pub nlmsg_type: u16,
+    pub nlmsg_flags: u16,
+    pub nlmsg_seq: u32,
+    pub nlmsg_pid: u32,
+}
+
+// Netlink header is native endian
+pub fn read_header(data: &[u8]) -> Nlmsghdr {
+    let mut s = Nlmsghdr::default();
+    let mut cursor = Cursor::new(data);
+
+    s.nlmsg_len = cursor.read_u32::<NativeEndian>().unwrap();
+    s.nlmsg_type = cursor.read_u16::<NativeEndian>().unwrap();
+    s.nlmsg_flags = cursor.read_u16::<NativeEndian>().unwrap();
+    s.nlmsg_seq = cursor.read_u32::<NativeEndian>().unwrap();
+    s.nlmsg_pid = cursor.read_u32::<NativeEndian>().unwrap();
+    s
+}
+
+// Cooked SLL header is big endian (network byte order)
+// http://www.tcpdump.org/linktypes/LINKTYPE_LINUX_SLL.html
+#[derive(Debug)]
+pub struct CookedHeader {
+    header_type: u16,
+    arphdr_type: u16,
+    address_length: u16,
+    address: [u8; 8],
+    protocol_type: u16,
+}
+pub const COOKED_HEADER_SIZE: usize = 16;
+impl Default for CookedHeader {
+    fn default() -> CookedHeader {
+        CookedHeader { header_type: 0,
+                      arphdr_type: 0,
+                      address_length: 0,
+                      address: [0; 8],
+                      protocol_type: 0 }
+    }
+}
+
+pub fn read_cooked_header(data: &[u8]) -> CookedHeader {
+    let mut c = CookedHeader::default();
+    let mut cursor = Cursor::new(data);
+
+    c.header_type = cursor.read_u16::<BigEndian>().unwrap();
+    c.arphdr_type = cursor.read_u16::<BigEndian>().unwrap();
+    c.address_length = cursor.read_u16::<BigEndian>().unwrap();
+    for a in c.address.iter_mut() {
+        *a = cursor.read_u8().unwrap();
+    }
+    c.protocol_type = cursor.read_u16::<BigEndian>().unwrap();
+    println!("c == {:?}", c);
+
+    c
+}
+
+#[test]
+fn test_read_header() {
+    let raw_data = [0u8, 4, 3, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 36, 0,
+                    0, 0, 26, 0, 5, 3, 89, 7, 185, 85, 249, 2, 128, 0, 32, 0,
+                    0, 0, 8, 0, 3, 0, 2, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0];
+    let h = read_header(&raw_data[COOKED_HEADER_SIZE ..]);
+    println!("h = {:?}", h);
+
+    assert!(h.nlmsg_len == 36);
+    assert!(h.nlmsg_type == 26);
+    assert!(h.nlmsg_flags == 773);
+    assert!(h.nlmsg_seq == 1438189401);
+    assert!(h.nlmsg_pid == 8389369);
+}
+
+#[test]
+fn test_read_cooked_header() {
+    let raw_data = [0u8, 4, 3, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 36, 0,
+                    0, 0, 26, 0, 5, 3, 89, 7, 185, 85, 249, 2, 128, 0, 32, 0,
+                    0, 0, 8, 0, 3, 0, 2, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0];
+    let h = read_cooked_header(&raw_data);
+    println!("h = {:?}", h);
+
+    assert!(h.header_type == 4);
+    assert!(h.arphdr_type == 824);
+    assert!(h.address_length == 0);
+    for a in h.address.iter() {
+        assert!(*a == 0);
+    }
+    assert!(h.protocol_type == 16);
+}
