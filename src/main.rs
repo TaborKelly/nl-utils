@@ -56,14 +56,10 @@ fn print_packets(path: String) {
 	let mut cap = Capture::from_file(path).unwrap();
 
     while let Some(packet) = cap.next() {
-        println!("len = {}", packet.header.len);
-        println!("packet.data.len() = {}", packet.data.len());
-        println!("got packet! {:?}", packet);
-
         // for the time being, assume that we are reading a pcap file in which case
         // each packet starts with the "SLL cooked header"
         let header = nl::read_header(&packet.data[nl::COOKED_HEADER_SIZE ..]);
-        println!("header =  {:?}", header);
+        println!("header = {}", header);
     }
 }
 

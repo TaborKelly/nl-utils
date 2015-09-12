@@ -10,6 +10,7 @@ mod nl80211;
 
 use ::std::io::Cursor;
 use ::byteorder::{BigEndian, NativeEndian, ReadBytesExt};
+use ::std::fmt;
 
 #[derive(Debug)]
 #[derive(Default)]
@@ -19,6 +20,14 @@ pub struct Nlmsghdr {
     pub nlmsg_flags: u16,
     pub nlmsg_seq: u32,
     pub nlmsg_pid: u32,
+}
+impl fmt::Display for Nlmsghdr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{\n\tnlmsg_len: {},\n\tnlmsg_type: {},\n\t\
+               nlmsg_flags: {:#x},\n\tnlmsg_seq: {},\n\tnlmsg_pid: {}\n}}",
+               self.nlmsg_len, self.nlmsg_type, self.nlmsg_flags,
+               self.nlmsg_seq, self.nlmsg_pid)
+    }
 }
 
 // Netlink header is native endian
