@@ -51,7 +51,7 @@ pub struct CookedHeader {
     arphdr_type: u16,
     address_length: u16,
     address: [u8; 8],
-    protocol_type: u16,
+    protocol_type: u16, // NETLINK_ROUTE .. NETLINK_INET_DIAG
 }
 pub const COOKED_HEADER_SIZE: usize = 16;
 impl Default for CookedHeader {
@@ -61,6 +61,23 @@ impl Default for CookedHeader {
                       address_length: 0,
                       address: [0; 8],
                       protocol_type: 0 }
+    }
+}
+impl fmt::Display for CookedHeader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{\n\theader_type: {},\n\tarphdr_type: {},\n\t\
+               address_length: {}\n\taddress = [",
+               self.header_type, self.arphdr_type,
+               self.address_length).unwrap();
+        let mut count: usize = 1;
+        for a in self.address.iter() {
+            write!(f, " {}", a).unwrap();
+            if count < self.address.len() {
+                write!(f, ",").unwrap();
+            }
+            count = count + 1;
+        }
+        write!(f, " ]\n\tprotocol_type: {}\n}}", self.protocol_type)
     }
 }
 
@@ -75,7 +92,7 @@ pub fn read_cooked_header(data: &[u8]) -> CookedHeader {
         *a = cursor.read_u8().unwrap();
     }
     c.protocol_type = cursor.read_u16::<BigEndian>().unwrap();
-    println!("c == {:?}", c);
+    assert!(cursor.position() as usize == COOKED_HEADER_SIZE);
 
     c
 }
