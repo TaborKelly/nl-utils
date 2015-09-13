@@ -12,6 +12,8 @@ use ::std::io::Cursor;
 use ::byteorder::{BigEndian, NativeEndian, ReadBytesExt};
 use ::std::fmt;
 
+use ::num::FromPrimitive;
+
 #[derive(Debug)]
 #[derive(Default)]
 pub struct Nlmsghdr {
@@ -51,7 +53,7 @@ pub struct CookedHeader {
     arphdr_type: u16,
     address_length: u16,
     address: [u8; 8],
-    protocol_type: u16, // NETLINK_ROUTE .. NETLINK_INET_DIAG
+    netlink_family: netlink::NetlinkFamily, // NETLINK_ROUTE .. NETLINK_INET_DIAG
 }
 pub const COOKED_HEADER_SIZE: usize = 16;
 impl Default for CookedHeader {
@@ -60,7 +62,7 @@ impl Default for CookedHeader {
                       arphdr_type: 0,
                       address_length: 0,
                       address: [0; 8],
-                      protocol_type: 0 }
+                      netlink_family: netlink::NetlinkFamily::NETLINK_ROUTE }
     }
 }
 impl fmt::Display for CookedHeader {
@@ -77,7 +79,7 @@ impl fmt::Display for CookedHeader {
             }
             count = count + 1;
         }
-        write!(f, " ]\n\tprotocol_type: {}\n}}", self.protocol_type)
+        write!(f, " ]\n\tnetlink_family: {}\n}}", self.netlink_family)
     }
 }
 
@@ -91,7 +93,8 @@ pub fn read_cooked_header(data: &[u8]) -> CookedHeader {
     for a in c.address.iter_mut() {
         *a = cursor.read_u8().unwrap();
     }
-    c.protocol_type = cursor.read_u16::<BigEndian>().unwrap();
+    let family = cursor.read_u16::<BigEndian>().unwrap();
+    c.netlink_family = netlink::NetlinkFamily::from_u16(family).unwrap();
     assert!(cursor.position() as usize == COOKED_HEADER_SIZE);
 
     c
@@ -126,5 +129,5 @@ fn test_read_cooked_header() {
     for a in h.address.iter() {
         assert!(*a == 0);
     }
-    assert!(h.protocol_type == 16);
+    assert!(h.netlink_family == netlink::NetlinkFamily::NETLINK_GENERIC);
 }
