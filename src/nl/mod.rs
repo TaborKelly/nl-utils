@@ -79,7 +79,7 @@ impl fmt::Display for CookedHeader {
             }
             count = count + 1;
         }
-        write!(f, " ]\n\tnetlink_family: {}\n}}", self.netlink_family)
+        write!(f, " ],\n\tnetlink_family: {}\n}}", self.netlink_family)
     }
 }
 
