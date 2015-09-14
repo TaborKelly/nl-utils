@@ -8,11 +8,14 @@ mod genetlink;
 #[allow(non_camel_case_types)]
 mod nl80211;
 
+use ::std;
 use ::std::io::Cursor;
 use ::byteorder::{BigEndian, NativeEndian, ReadBytesExt};
 use ::std::fmt;
 
 use ::num::FromPrimitive;
+
+// TODO: implement custom formatters for indented output
 
 // Cooked SLL header is big endian (network byte order)
 // http://www.tcpdump.org/linktypes/LINKTYPE_LINUX_SLL.html
@@ -51,22 +54,23 @@ impl fmt::Display for CookedHeader {
         write!(f, " ],\n\tnetlink_family: {}\n}}", self.netlink_family)
     }
 }
+impl CookedHeader {
+    // Netlink header is native endian
+    pub fn read(cursor: &mut std::io::Cursor<&[u8]>) -> CookedHeader {
+        let mut c = CookedHeader::default();
 
-pub fn read_cooked_header(data: &[u8]) -> CookedHeader {
-    let mut c = CookedHeader::default();
-    let mut cursor = Cursor::new(data);
+        c.header_type = cursor.read_u16::<BigEndian>().unwrap();
+        c.arphdr_type = cursor.read_u16::<BigEndian>().unwrap();
+        c.address_length = cursor.read_u16::<BigEndian>().unwrap();
+        for a in c.address.iter_mut() {
+            *a = cursor.read_u8().unwrap();
+        }
+        let family = cursor.read_u16::<BigEndian>().unwrap();
+        c.netlink_family = netlink::NetlinkFamily::from_u16(family).unwrap();
+        assert!(cursor.position() as usize == COOKED_HEADER_SIZE);
 
-    c.header_type = cursor.read_u16::<BigEndian>().unwrap();
-    c.arphdr_type = cursor.read_u16::<BigEndian>().unwrap();
-    c.address_length = cursor.read_u16::<BigEndian>().unwrap();
-    for a in c.address.iter_mut() {
-        *a = cursor.read_u8().unwrap();
+        c
     }
-    let family = cursor.read_u16::<BigEndian>().unwrap();
-    c.netlink_family = netlink::NetlinkFamily::from_u16(family).unwrap();
-    assert!(cursor.position() as usize == COOKED_HEADER_SIZE);
-
-    c
 }
 
 #[derive(Debug)]
@@ -86,26 +90,54 @@ impl fmt::Display for Nlmsghdr {
                self.nlmsg_seq, self.nlmsg_pid)
     }
 }
+impl Nlmsghdr {
+    // Netlink header is native endian
+    pub fn read(cursor: &mut std::io::Cursor<&[u8]>) -> Nlmsghdr {
+        let mut s = Nlmsghdr::default();
 
-// Netlink header is native endian
-pub fn read_header(data: &[u8]) -> Nlmsghdr {
-    let mut s = Nlmsghdr::default();
-    let mut cursor = Cursor::new(data);
+        s.nlmsg_len = cursor.read_u32::<NativeEndian>().unwrap();
+        s.nlmsg_type = cursor.read_u16::<NativeEndian>().unwrap();
+        s.nlmsg_flags = cursor.read_u16::<NativeEndian>().unwrap();
+        s.nlmsg_seq = cursor.read_u32::<NativeEndian>().unwrap();
+        s.nlmsg_pid = cursor.read_u32::<NativeEndian>().unwrap();
+        s
+    }
+}
 
-    s.nlmsg_len = cursor.read_u32::<NativeEndian>().unwrap();
-    s.nlmsg_type = cursor.read_u16::<NativeEndian>().unwrap();
-    s.nlmsg_flags = cursor.read_u16::<NativeEndian>().unwrap();
-    s.nlmsg_seq = cursor.read_u32::<NativeEndian>().unwrap();
-    s.nlmsg_pid = cursor.read_u32::<NativeEndian>().unwrap();
-    s
+#[derive(Debug)]
+#[derive(Default)]
+pub struct NlMsg {
+    pub netlink_family: netlink::NetlinkFamily,
+    pub nlmsghdr: Nlmsghdr,
+}
+impl NlMsg
+{
+    pub fn read(data: &[u8]) -> NlMsg {
+        let mut nlmsg = NlMsg::default();
+        let mut cursor = Cursor::new(data);
+        let cookedheader = CookedHeader::read(&mut cursor);
+        nlmsg.netlink_family = cookedheader.netlink_family;
+        nlmsg.nlmsghdr = Nlmsghdr::read(&mut cursor);
+        nlmsg
+    }
+}
+impl fmt::Display for NlMsg {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{\n\tnetlink_family: ").unwrap();
+        self.netlink_family.fmt(f).unwrap();
+        write!(f, "\n\tnlmsghdr: ").unwrap();
+        self.nlmsghdr.fmt(f).unwrap();
+        write!(f, "}}\n")
+    }
 }
 
 #[test]
-fn test_read_cooked_header() {
+fn test_cookedheader_read() {
     let raw_data = [0u8, 4, 3, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 36, 0,
                     0, 0, 26, 0, 5, 3, 89, 7, 185, 85, 249, 2, 128, 0, 32, 0,
                     0, 0, 8, 0, 3, 0, 2, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0];
-    let h = read_cooked_header(&raw_data);
+    let mut cursor = Cursor::new(&raw_data as &[u8]);
+    let h = CookedHeader::read(&mut cursor);
     println!("h = {:?}", h);
 
     assert!(h.header_type == 4);
@@ -118,11 +150,12 @@ fn test_read_cooked_header() {
 }
 
 #[test]
-fn test_read_header() {
+fn test_nlmsghdr_read() {
     let raw_data = [0u8, 4, 3, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 36, 0,
                     0, 0, 26, 0, 5, 3, 89, 7, 185, 85, 249, 2, 128, 0, 32, 0,
                     0, 0, 8, 0, 3, 0, 2, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0];
-    let h = read_header(&raw_data[COOKED_HEADER_SIZE ..]);
+    let mut cursor = Cursor::new(&raw_data[COOKED_HEADER_SIZE ..] as &[u8]);
+    let h = Nlmsghdr::read(&mut cursor);
     println!("h = {:?}", h);
 
     assert!(h.nlmsg_len == 36);
@@ -130,4 +163,20 @@ fn test_read_header() {
     assert!(h.nlmsg_flags == 773);
     assert!(h.nlmsg_seq == 1438189401);
     assert!(h.nlmsg_pid == 8389369);
+}
+
+#[test]
+fn test_NlMsg_read() {
+    let raw_data = [0u8, 4, 3, 56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 36, 0,
+                    0, 0, 26, 0, 5, 3, 89, 7, 185, 85, 249, 2, 128, 0, 32, 0,
+                    0, 0, 8, 0, 3, 0, 2, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0];
+    let msg = NlMsg::read(&raw_data);
+    println!("msg = {:?}", msg);
+
+    assert!(msg.netlink_family == netlink::NetlinkFamily::NETLINK_GENERIC);
+    assert!(msg.nlmsghdr.nlmsg_len == 36);
+    assert!(msg.nlmsghdr.nlmsg_type == 26);
+    assert!(msg.nlmsghdr.nlmsg_flags == 773);
+    assert!(msg.nlmsghdr.nlmsg_seq == 1438189401);
+    assert!(msg.nlmsghdr.nlmsg_pid == 8389369);
 }

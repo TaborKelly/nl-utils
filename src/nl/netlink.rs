@@ -32,3 +32,8 @@ impl fmt::Display for NetlinkFamily {
         write!(f, "{:?}", *self)
     }
 }
+impl Default for NetlinkFamily {
+    fn default() -> NetlinkFamily {
+        NetlinkFamily::NETLINK_ROUTE
+    }
+}

@@ -62,12 +62,9 @@ fn print_packets(path: String) {
     let mut p: i32 = 1;
     while let Some(packet) = cap.next() {
         println!("packet = {}", p);
-        // for the time being, assume that we are reading a pcap file in which case
-        // each packet starts with the "SLL cooked header"
-        let cooked_header = nl::read_cooked_header(packet.data);
-        println!("cooked_header = {}", cooked_header);
-        let header = nl::read_header(&packet.data[nl::COOKED_HEADER_SIZE ..]);
-        println!("header = {}", header);
+        let nlmsg = nl::NlMsg::read(packet.data);
+        println!("nlmsg = {:?}", nlmsg);
+        println!("nlmsg = {}", nlmsg);
         p = p + 1;
     }
 }
