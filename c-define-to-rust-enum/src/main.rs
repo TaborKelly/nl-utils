@@ -108,21 +108,8 @@ fn main() {
     debug!("args = {:?}", args);
 
     let v = get_input(&args);
-//    debug!("v = {:?}", v);
 
     write_output(&args, v);
-/*
-    match args.output {
-        Some(s) => {
-            let f = File::open(s).unwrap();
-            //let output = &BufReader::new(f);
-        }
-        _ => panic!(),
-    }
-*/
-    // println!("v = {:?}", v);
-
-    // let v = parse_buff(input);
 }
 
 #[derive(Debug)]
