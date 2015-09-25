@@ -2,7 +2,7 @@ extern crate getopts;
 use std::env;
 use getopts::Options;
 use std::cmp::Ordering;
-use std::io::{Cursor, Read, Write, BufRead, BufReader, BufWriter};
+use std::io::{Read, Write, BufRead, BufReader, BufWriter};
 use std::fs::{File, OpenOptions};
 
 #[macro_use]
@@ -16,6 +16,7 @@ extern crate regex;
 struct Args {
     input: Option<String>,
     output: Option<String>,
+    name: String,
 }
 
 fn parse_options() -> Args {
@@ -26,6 +27,7 @@ fn parse_options() -> Args {
     let mut opts = Options::new();
     opts.optopt("i", "input", "input file name", "NAME");
     opts.optopt("o", "output", "output file name", "NAME");
+    opts.optopt("n", "name", "the enum name", "NAME");
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -37,6 +39,10 @@ fn parse_options() -> Args {
     }
     a.input = matches.opt_str("i");
     a.output = matches.opt_str("o");
+    let name = matches.opt_str("n");
+    // apply default name
+    a.name = name.unwrap_or(String::from("Name"));
+
     a
 }
 
@@ -80,11 +86,18 @@ fn get_input(args: &Args) -> Vec<CEnum> {
     }
 }
 
-fn format_output<T: Write>(mut w: T, vec: Vec<CEnum>) {
-    w.write(format!("{:?}", vec).as_bytes()).unwrap();
+fn format_output<T: Write>(mut w: T, name: &String, vec: Vec<CEnum>) {
+    w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
+    w.write(format!("enum {} {{\n", name).as_bytes()).unwrap();
+
+    for v in vec {
+        w.write(format!("    {} = {},\n", v.s, v.i).as_bytes()).unwrap();
+    }
+
+    w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
-fn write_output(args: &Args, vec: Vec<CEnum>) /*-> */ {
+fn write_output(args: &Args, vec: Vec<CEnum>) {
     match args.output {
         Some(ref s) => {
             let f = OpenOptions::new().read(true)
@@ -92,11 +105,11 @@ fn write_output(args: &Args, vec: Vec<CEnum>) /*-> */ {
                                       .create(true)
                                       .open(s).unwrap();
             let w = BufWriter::new(f);
-            format_output(w, vec);
+            format_output(w, &args.name, vec);
         }
         None => {
             let w = BufWriter::new(std::io::stdout());
-            format_output(w, vec);
+            format_output(w, &args.name, vec);
         }
     }
 }
@@ -171,6 +184,7 @@ fn teste_CENum_order() {
 
 #[test]
 fn test_parse_buff() {
+    use std::io::Cursor;
     let s = "#define NETLINK_ROUTE 0\n\
     #define NETLINK_UNUSED 1\n\
     #define NETLINK_FIREWALL 3\n\
