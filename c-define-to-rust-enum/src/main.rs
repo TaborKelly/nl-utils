@@ -17,6 +17,7 @@ struct Args {
     input: Option<String>,
     output: Option<String>,
     name: String,
+    fromstr: bool,
 }
 
 fn parse_options() -> Args {
@@ -29,6 +30,7 @@ fn parse_options() -> Args {
     opts.optopt("o", "output", "output file name", "NAME");
     opts.optopt("n", "name", "the enum name", "NAME");
     opts.optflag("h", "help", "print this help menu");
+    opts.optflag("f", "fromstr", "implement FromStr");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -42,6 +44,7 @@ fn parse_options() -> Args {
     let name = matches.opt_str("n");
     // apply default name
     a.name = name.unwrap_or(String::from("Name"));
+    a.fromstr = matches.opt_present("f");
 
     a
 }
@@ -86,7 +89,22 @@ fn get_input(args: &Args) -> Vec<CEnum> {
     }
 }
 
-fn format_output<T: Write>(mut w: T, name: &String, vec: Vec<CEnum>) {
+fn format_fromstr<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
+    w.write(format!("impl ::std::str::FromStr for {}{{\n", name).as_bytes()).unwrap();
+    w.write(format!("    type Err = ();\n").as_bytes()).unwrap();
+    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+    w.write(format!("    fn from_str(s: &str) -> Result<Self, Self::Err> {{\n").as_bytes()).unwrap();
+    w.write(format!("        match s {{\n").as_bytes()).unwrap();
+    for v in vec {
+        w.write(format!("            \"{}\" => Ok({}::{}),\n", v.s, name, v.s).as_bytes()).unwrap();
+    }
+    w.write(format!("            _ => Err( () )\n").as_bytes()).unwrap();
+    w.write(format!("        }}\n").as_bytes()).unwrap();
+    w.write(format!("    }}\n").as_bytes()).unwrap();
+    w.write(format!("}}\n").as_bytes()).unwrap();
+}
+
+fn format_output<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
     w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
     w.write(format!("enum {} {{\n", name).as_bytes()).unwrap();
 
@@ -97,6 +115,7 @@ fn format_output<T: Write>(mut w: T, name: &String, vec: Vec<CEnum>) {
     w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
+// TODO: refactor
 fn write_output(args: &Args, vec: Vec<CEnum>) {
     match args.output {
         Some(ref s) => {
@@ -104,12 +123,13 @@ fn write_output(args: &Args, vec: Vec<CEnum>) {
                                       .write(true)
                                       .create(true)
                                       .open(s).unwrap();
-            let w = BufWriter::new(f);
-            format_output(w, &args.name, vec);
+            let mut w = BufWriter::new(f);
+            format_output(&mut w, &args.name, &vec);
+            if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
         }
         None => {
-            let w = BufWriter::new(std::io::stdout());
-            format_output(w, &args.name, vec);
+            let mut w = BufWriter::new(std::io::stdout());
+            format_output(&mut w, &args.name, &vec);
         }
     }
 }
