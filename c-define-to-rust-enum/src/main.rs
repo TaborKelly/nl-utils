@@ -17,6 +17,7 @@ struct Args {
     input: Option<String>,
     output: Option<String>,
     name: String,
+    display: bool,
     fromstr: bool,
 }
 
@@ -30,7 +31,8 @@ fn parse_options() -> Args {
     opts.optopt("o", "output", "output file name", "NAME");
     opts.optopt("n", "name", "the enum name", "NAME");
     opts.optflag("h", "help", "print this help menu");
-    opts.optflag("f", "fromstr", "implement FromStr");
+    opts.optflag("d", "display", "implement std::fmt::Display");
+    opts.optflag("f", "fromstr", "implement std::str::FromStr");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -45,6 +47,7 @@ fn parse_options() -> Args {
     // apply default name
     a.name = name.unwrap_or(String::from("Name"));
     a.fromstr = matches.opt_present("f");
+    a.display = matches.opt_present("d");
 
     a
 }
@@ -89,8 +92,22 @@ fn get_input(args: &Args) -> Vec<CEnum> {
     }
 }
 
+// TODO: revisit. Can this be a macro?
+fn format_display<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
+    w.write(format!("impl ::std::fmt::Display for {} {{\n", name).as_bytes()).unwrap();
+    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+    w.write(format!("    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
+    w.write(format!("        match *self {{\n").as_bytes()).unwrap();
+    for v in vec {
+        w.write(format!("            {}::{} => write!(f, \"{}\"),\n", name, v.s, v.s).as_bytes()).unwrap();
+    }
+    w.write(format!("        }}\n").as_bytes()).unwrap();
+    w.write(format!("    }}\n").as_bytes()).unwrap();
+    w.write(format!("}}\n").as_bytes()).unwrap();
+}
+
 fn format_fromstr<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
-    w.write(format!("impl ::std::str::FromStr for {}{{\n", name).as_bytes()).unwrap();
+    w.write(format!("impl ::std::str::FromStr for {} {{\n", name).as_bytes()).unwrap();
     w.write(format!("    type Err = ();\n").as_bytes()).unwrap();
     w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
     w.write(format!("    fn from_str(s: &str) -> Result<Self, Self::Err> {{\n").as_bytes()).unwrap();
@@ -126,10 +143,13 @@ fn write_output(args: &Args, vec: Vec<CEnum>) {
             let mut w = BufWriter::new(f);
             format_output(&mut w, &args.name, &vec);
             if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
+            if args.display { format_display(&mut w, &args.name, &vec); }
         }
         None => {
             let mut w = BufWriter::new(std::io::stdout());
             format_output(&mut w, &args.name, &vec);
+            if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
+            if args.display { format_display(&mut w, &args.name, &vec); }
         }
     }
 }
