@@ -23,7 +23,7 @@ struct Args {
 }
 
 trait FormatOutput {
-    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>);
+    fn write(&self, w: &mut Write, name: &String, vec: &Vec<CEnum>);
 }
 
 fn parse_options() -> Args {
@@ -101,7 +101,7 @@ fn get_input(args: &Args) -> Vec<CEnum> {
 
 struct FormatOutputFromPrimative;
 impl FormatOutput for FormatOutputFromPrimative {
-    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+    fn write(&self, w: &mut Write, name: &String, vec: &Vec<CEnum>){
         w.write(format!("impl ::num::traits::FromPrimitive for {} {{\n", name).as_bytes()).unwrap();
         w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
         w.write(format!("    fn from_i64(n: i64) -> Option<Self> {{\n").as_bytes()).unwrap();
@@ -127,7 +127,7 @@ impl FormatOutput for FormatOutputFromPrimative {
 
 struct FormatOutputDisplay;
 impl FormatOutput for FormatOutputDisplay {
-    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+    fn write(&self, w: &mut Write, name: &String, vec: &Vec<CEnum>){
         w.write(format!("impl ::std::fmt::Display for {} {{\n", name).as_bytes()).unwrap();
         w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
         w.write(format!("    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
@@ -143,7 +143,7 @@ impl FormatOutput for FormatOutputDisplay {
 
 struct FormatOutputFromStr;
 impl FormatOutput for FormatOutputFromStr {
-    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+    fn write(&self, w: &mut Write, name: &String, vec: &Vec<CEnum>){
         w.write(format!("impl ::std::str::FromStr for {} {{\n", name).as_bytes()).unwrap();
         w.write(format!("    type Err = ();\n").as_bytes()).unwrap();
         w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
@@ -161,7 +161,7 @@ impl FormatOutput for FormatOutputFromStr {
 
 struct FormatOutputEnum;
 impl FormatOutput for FormatOutputEnum {
-    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+    fn write(&self, w: &mut Write, name: &String, vec: &Vec<CEnum>){
         w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
         w.write(format!("enum {} {{\n", name).as_bytes()).unwrap();
 
@@ -190,24 +190,24 @@ fn write_factory(args: &Args) -> Box<Write> {
     }
 }
 
-fn write_output(args: &Args, vec: Vec<CEnum>) {
-    let mut w = write_factory(args);
-
-    FormatOutputEnum::write(&mut w, &args.name, &vec);
-    if args.fromstr { FormatOutputFromStr::write(&mut w, &args.name, &vec); }
-    if args.display { FormatOutputDisplay::write(&mut w, &args.name, &vec); }
-    if args.fromprimative { FormatOutputFromPrimative::write(&mut w, &args.name, &vec); }
-}
-
 fn main() {
     use std::fs::File;
     env_logger::init().unwrap();
     let args: Args = parse_options();
     debug!("args = {:?}", args);
 
-    let v = get_input(&args);
+    let mut fov: Vec<Box<FormatOutput>> = Vec::new();
+    fov.push(Box::new(FormatOutputEnum));
+    if args.fromstr { fov.push(Box::new(FormatOutputFromStr)); }
+    if args.display { fov.push(Box::new(FormatOutputDisplay)); }
+    if args.fromprimative { fov.push(Box::new(FormatOutputFromPrimative)); }
 
-    write_output(&args, v);
+    let vi = get_input(&args);
+    let mut w = write_factory(&args);
+
+    for vw in fov {
+        vw.write(&mut w, &args.name, &vi);
+    }
 }
 
 #[derive(Debug)]
