@@ -22,6 +22,10 @@ struct Args {
     fromprimative: bool,
 }
 
+trait FormatOutput {
+    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>);
+}
+
 fn parse_options() -> Args {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -95,67 +99,78 @@ fn get_input(args: &Args) -> Vec<CEnum> {
     }
 }
 
-fn format_fromprimative<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
-    w.write(format!("impl ::num::traits::FromPrimitive for {} {{\n", name).as_bytes()).unwrap();
-    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-    w.write(format!("    fn from_i64(n: i64) -> Option<Self> {{\n").as_bytes()).unwrap();
-    w.write(format!("        match n {{\n").as_bytes()).unwrap();
-    for v in vec {
-        w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+struct FormatOutputFromPrimative;
+impl FormatOutput for FormatOutputFromPrimative {
+    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+        w.write(format!("impl ::num::traits::FromPrimitive for {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+        w.write(format!("    fn from_i64(n: i64) -> Option<Self> {{\n").as_bytes()).unwrap();
+        w.write(format!("        match n {{\n").as_bytes()).unwrap();
+        for v in vec {
+            w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+        }
+        w.write(format!("            _ => None\n").as_bytes()).unwrap();
+        w.write(format!("        }}\n").as_bytes()).unwrap();
+        w.write(format!("    }}\n").as_bytes()).unwrap();
+        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+        w.write(format!("    fn from_u64(n: u64) -> Option<Self> {{\n").as_bytes()).unwrap();
+        w.write(format!("        match n {{\n").as_bytes()).unwrap();
+        for v in vec {
+            w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+        }
+        w.write(format!("            _ => None\n").as_bytes()).unwrap();
+        w.write(format!("        }}\n").as_bytes()).unwrap();
+        w.write(format!("    }}\n").as_bytes()).unwrap();
+        w.write(format!("}}\n").as_bytes()).unwrap();
     }
-    w.write(format!("            _ => None\n").as_bytes()).unwrap();
-    w.write(format!("        }}\n").as_bytes()).unwrap();
-    w.write(format!("    }}\n").as_bytes()).unwrap();
-    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-    w.write(format!("    fn from_u64(n: u64) -> Option<Self> {{\n").as_bytes()).unwrap();
-    w.write(format!("        match n {{\n").as_bytes()).unwrap();
-    for v in vec {
-        w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
-    }
-    w.write(format!("            _ => None\n").as_bytes()).unwrap();
-    w.write(format!("        }}\n").as_bytes()).unwrap();
-    w.write(format!("    }}\n").as_bytes()).unwrap();
-    w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
-// TODO: revisit. Can this be a macro?
-fn format_display<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
-    w.write(format!("impl ::std::fmt::Display for {} {{\n", name).as_bytes()).unwrap();
-    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-    w.write(format!("    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
-    w.write(format!("        match *self {{\n").as_bytes()).unwrap();
-    for v in vec {
-        w.write(format!("            {}::{} => write!(f, \"{}\"),\n", name, v.s, v.s).as_bytes()).unwrap();
+struct FormatOutputDisplay;
+impl FormatOutput for FormatOutputDisplay {
+    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+        w.write(format!("impl ::std::fmt::Display for {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+        w.write(format!("    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
+        w.write(format!("        match *self {{\n").as_bytes()).unwrap();
+        for v in vec {
+            w.write(format!("            {}::{} => write!(f, \"{}\"),\n", name, v.s, v.s).as_bytes()).unwrap();
+        }
+        w.write(format!("        }}\n").as_bytes()).unwrap();
+        w.write(format!("    }}\n").as_bytes()).unwrap();
+        w.write(format!("}}\n").as_bytes()).unwrap();
     }
-    w.write(format!("        }}\n").as_bytes()).unwrap();
-    w.write(format!("    }}\n").as_bytes()).unwrap();
-    w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
-fn format_fromstr<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
-    w.write(format!("impl ::std::str::FromStr for {} {{\n", name).as_bytes()).unwrap();
-    w.write(format!("    type Err = ();\n").as_bytes()).unwrap();
-    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-    w.write(format!("    fn from_str(s: &str) -> Result<Self, Self::Err> {{\n").as_bytes()).unwrap();
-    w.write(format!("        match s {{\n").as_bytes()).unwrap();
-    for v in vec {
-        w.write(format!("            \"{}\" => Ok({}::{}),\n", v.s, name, v.s).as_bytes()).unwrap();
+struct FormatOutputFromStr;
+impl FormatOutput for FormatOutputFromStr {
+    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+        w.write(format!("impl ::std::str::FromStr for {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("    type Err = ();\n").as_bytes()).unwrap();
+        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+        w.write(format!("    fn from_str(s: &str) -> Result<Self, Self::Err> {{\n").as_bytes()).unwrap();
+        w.write(format!("        match s {{\n").as_bytes()).unwrap();
+        for v in vec {
+            w.write(format!("            \"{}\" => Ok({}::{}),\n", v.s, name, v.s).as_bytes()).unwrap();
+        }
+        w.write(format!("            _ => Err( () )\n").as_bytes()).unwrap();
+        w.write(format!("        }}\n").as_bytes()).unwrap();
+        w.write(format!("    }}\n").as_bytes()).unwrap();
+        w.write(format!("}}\n").as_bytes()).unwrap();
     }
-    w.write(format!("            _ => Err( () )\n").as_bytes()).unwrap();
-    w.write(format!("        }}\n").as_bytes()).unwrap();
-    w.write(format!("    }}\n").as_bytes()).unwrap();
-    w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
-fn format_output<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
-    w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
-    w.write(format!("enum {} {{\n", name).as_bytes()).unwrap();
+struct FormatOutputEnum;
+impl FormatOutput for FormatOutputEnum {
+    fn write<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>){
+        w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
+        w.write(format!("enum {} {{\n", name).as_bytes()).unwrap();
 
-    for v in vec {
-        w.write(format!("    {} = {},\n", v.s, v.i).as_bytes()).unwrap();
+        for v in vec {
+            w.write(format!("    {} = {},\n", v.s, v.i).as_bytes()).unwrap();
+        }
+
+        w.write(format!("}}\n").as_bytes()).unwrap();
     }
-
-    w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
 fn write_factory(args: &Args) -> Box<Write> {
@@ -178,10 +193,10 @@ fn write_factory(args: &Args) -> Box<Write> {
 fn write_output(args: &Args, vec: Vec<CEnum>) {
     let mut w = write_factory(args);
 
-    format_output(&mut w, &args.name, &vec);
-    if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
-    if args.display { format_display(&mut w, &args.name, &vec); }
-    if args.fromprimative { format_fromprimative(&mut w, &args.name, &vec); }
+    FormatOutputEnum::write(&mut w, &args.name, &vec);
+    if args.fromstr { FormatOutputFromStr::write(&mut w, &args.name, &vec); }
+    if args.display { FormatOutputDisplay::write(&mut w, &args.name, &vec); }
+    if args.fromprimative { FormatOutputFromPrimative::write(&mut w, &args.name, &vec); }
 }
 
 fn main() {
