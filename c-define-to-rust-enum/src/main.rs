@@ -2,7 +2,7 @@ extern crate getopts;
 use std::env;
 use getopts::Options;
 use std::cmp::Ordering;
-use std::io::{Read, Write, BufRead, BufReader, BufWriter};
+use std::io::{Write, BufRead, BufReader, BufWriter};
 use std::fs::{File, OpenOptions};
 
 #[macro_use]
@@ -19,6 +19,7 @@ struct Args {
     name: String,
     display: bool,
     fromstr: bool,
+    fromprimative: bool,
 }
 
 fn parse_options() -> Args {
@@ -27,12 +28,13 @@ fn parse_options() -> Args {
     let mut a = Args::default();
 
     let mut opts = Options::new();
-    opts.optopt("i", "input", "input file name", "NAME");
-    opts.optopt("o", "output", "output file name", "NAME");
-    opts.optopt("n", "name", "the enum name", "NAME");
+    opts.optopt("i", "input", "input file name (stdin if not specified)", "NAME");
+    opts.optopt("o", "output", "output file name (stdout if not specified)", "NAME");
+    opts.optopt("", "name", "the enum name (Name if not specified)", "NAME");
     opts.optflag("h", "help", "print this help menu");
-    opts.optflag("d", "display", "implement std::fmt::Display");
-    opts.optflag("f", "fromstr", "implement std::str::FromStr");
+    opts.optflag("", "display", "implement std::fmt::Display");
+    opts.optflag("", "fromprimative", "implement num::traits::FromPrimitive");
+    opts.optflag("", "fromstr", "implement std::str::FromStr");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -43,11 +45,12 @@ fn parse_options() -> Args {
     }
     a.input = matches.opt_str("i");
     a.output = matches.opt_str("o");
-    let name = matches.opt_str("n");
+    let name = matches.opt_str("name");
     // apply default name
     a.name = name.unwrap_or(String::from("Name"));
-    a.fromstr = matches.opt_present("f");
-    a.display = matches.opt_present("d");
+    a.display = matches.opt_present("display");
+    a.fromprimative = matches.opt_present("fromprimative");
+    a.fromstr = matches.opt_present("fromstr");
 
     a
 }
@@ -90,6 +93,29 @@ fn get_input(args: &Args) -> Vec<CEnum> {
             parse_buff(r)
         }
     }
+}
+
+fn format_fromprimative<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
+    w.write(format!("impl ::num::traits::FromPrimitive for {} {{\n", name).as_bytes()).unwrap();
+    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+    w.write(format!("    fn from_i64(n: i64) -> Option<Self> {{\n").as_bytes()).unwrap();
+    w.write(format!("        match n {{\n").as_bytes()).unwrap();
+    for v in vec {
+        w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+    }
+    w.write(format!("            _ => None\n").as_bytes()).unwrap();
+    w.write(format!("        }}\n").as_bytes()).unwrap();
+    w.write(format!("    }}\n").as_bytes()).unwrap();
+    w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
+    w.write(format!("    fn from_u64(n: u64) -> Option<Self> {{\n").as_bytes()).unwrap();
+    w.write(format!("        match n {{\n").as_bytes()).unwrap();
+    for v in vec {
+        w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+    }
+    w.write(format!("            _ => None\n").as_bytes()).unwrap();
+    w.write(format!("        }}\n").as_bytes()).unwrap();
+    w.write(format!("    }}\n").as_bytes()).unwrap();
+    w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
 // TODO: revisit. Can this be a macro?
@@ -136,20 +162,22 @@ fn format_output<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
 fn write_output(args: &Args, vec: Vec<CEnum>) {
     match args.output {
         Some(ref s) => {
-            let f = OpenOptions::new().read(true)
-                                      .write(true)
+            let f = OpenOptions::new().write(true)
                                       .create(true)
+                                      .truncate(true)
                                       .open(s).unwrap();
             let mut w = BufWriter::new(f);
             format_output(&mut w, &args.name, &vec);
             if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
             if args.display { format_display(&mut w, &args.name, &vec); }
+            if args.fromprimative { format_fromprimative(&mut w, &args.name, &vec); }
         }
         None => {
             let mut w = BufWriter::new(std::io::stdout());
             format_output(&mut w, &args.name, &vec);
             if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
             if args.display { format_display(&mut w, &args.name, &vec); }
+            if args.fromprimative { format_fromprimative(&mut w, &args.name, &vec); }
         }
     }
 }
