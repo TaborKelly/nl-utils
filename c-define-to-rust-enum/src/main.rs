@@ -158,28 +158,30 @@ fn format_output<T: Write>(w: &mut T, name: &String, vec: &Vec<CEnum>) {
     w.write(format!("}}\n").as_bytes()).unwrap();
 }
 
-// TODO: refactor
-fn write_output(args: &Args, vec: Vec<CEnum>) {
+fn write_factory(args: &Args) -> Box<Write> {
     match args.output {
         Some(ref s) => {
             let f = OpenOptions::new().write(true)
                                       .create(true)
                                       .truncate(true)
                                       .open(s).unwrap();
-            let mut w = BufWriter::new(f);
-            format_output(&mut w, &args.name, &vec);
-            if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
-            if args.display { format_display(&mut w, &args.name, &vec); }
-            if args.fromprimative { format_fromprimative(&mut w, &args.name, &vec); }
+            let w = BufWriter::new(f);
+            Box::new(w)
         }
         None => {
-            let mut w = BufWriter::new(std::io::stdout());
-            format_output(&mut w, &args.name, &vec);
-            if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
-            if args.display { format_display(&mut w, &args.name, &vec); }
-            if args.fromprimative { format_fromprimative(&mut w, &args.name, &vec); }
+            let w = BufWriter::new(std::io::stdout());
+            Box::new(w)
         }
     }
+}
+
+fn write_output(args: &Args, vec: Vec<CEnum>) {
+    let mut w = write_factory(args);
+
+    format_output(&mut w, &args.name, &vec);
+    if args.fromstr { format_fromstr(&mut w, &args.name, &vec); }
+    if args.display { format_display(&mut w, &args.name, &vec); }
+    if args.fromprimative { format_fromprimative(&mut w, &args.name, &vec); }
 }
 
 fn main() {
