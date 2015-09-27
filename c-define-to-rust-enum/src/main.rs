@@ -36,9 +36,11 @@ fn parse_options() -> Args {
     opts.optopt("o", "output", "output file name (stdout if not specified)", "NAME");
     opts.optopt("", "name", "the enum name (Name if not specified)", "NAME");
     opts.optflag("h", "help", "print this help menu");
-    opts.optflag("", "display", "implement std::fmt::Display");
-    opts.optflag("", "fromprimative", "implement num::traits::FromPrimitive");
-    opts.optflag("", "fromstr", "implement std::str::FromStr");
+    opts.optflag("a", "all", "implment all of the traits (equivalent to \
+                 --display --fromprimative --fromstr)");
+    opts.optflag("", "display", "implement the std::fmt::Display trait");
+    opts.optflag("", "fromprimative", "implement the num::traits::FromPrimitive trait");
+    opts.optflag("", "fromstr", "implement the std::str::FromStr trait");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -55,6 +57,11 @@ fn parse_options() -> Args {
     a.display = matches.opt_present("display");
     a.fromprimative = matches.opt_present("fromprimative");
     a.fromstr = matches.opt_present("fromstr");
+    if matches.opt_present("all") {
+        a.display = true;
+        a.fromprimative = true;
+        a.fromstr = true;
+    }
 
     a
 }
