@@ -2,6 +2,7 @@ extern crate libc;
 extern crate getopts;
 use getopts::Options;
 use std::env;
+use std::str::FromStr;
 
 #[macro_use]
 extern crate log;
@@ -23,6 +24,7 @@ mod nl;
 #[derive(Default)]
 struct Args {
     input: Option<String>,
+    netlink_family: Option<nl::netlink::NetlinkFamily>,
 }
 
 fn parse_options() -> Args {
@@ -32,6 +34,8 @@ fn parse_options() -> Args {
 
     let mut opts = Options::new();
     opts.optopt("i", "input", "input file name", "NAME");
+    opts.optopt("", "netlink_family", "filter for one netlink_family (\
+                NETLINK_ROUTE, NETLINK_GENERIC, etc)", "FAMILY");
     opts.optflag("h", "help", "print this help menu");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -47,6 +51,12 @@ fn parse_options() -> Args {
         print_usage(&program, opts);
         std::process::exit(0);
     }
+    let netlink_family = matches.opt_str("netlink_family");
+    a.netlink_family = match netlink_family {
+        // This is confusing. &*s = explicitly reborrowing String as &str.
+        Some(s) => Some(nl::netlink::NetlinkFamily::from_str(&*s).unwrap()),
+        None => None,
+    };
     a
 }
 
@@ -55,17 +65,26 @@ fn print_usage(program: &str, opts: Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn print_packets(path: String) {
+fn print_packets(args: &Args) {
     // open a new capture from the test.pcap file we wrote to above
-	let mut cap = Capture::from_file(path).unwrap();
+    // let path = args.input.unwrap();
+	let mut cap = match args.input {
+        Some(ref s) => Capture::from_file(s).unwrap(),
+        None => panic!(),
+    };
 
-    let mut p: i32 = 1;
+    let mut p: i32 = 0;
     while let Some(packet) = cap.next() {
-        println!("packet = {}", p);
-        let nlmsg = nl::NlMsg::read(packet.data);
-        println!("nlmsg = {:?}", nlmsg);
-        println!("nlmsg = {}", nlmsg);
         p = p + 1;
+        let nlmsg = nl::NlMsg::read(packet.data);
+
+        match args.netlink_family {
+            Some(ref f) => if *f != nlmsg.netlink_family { continue },
+            None => (),
+        };
+
+        println!("packet = {}", p);
+        println!("nlmsg = {}", nlmsg);
     }
 }
 
@@ -74,8 +93,5 @@ fn main() {
     let args: Args = parse_options();
     debug!("args = {:?}", args);
 
-    match args.input {
-        Some(x) => print_packets(x),
-        _ => panic!(),
-    }
+    print_packets(&args);
 }

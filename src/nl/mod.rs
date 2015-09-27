@@ -1,6 +1,6 @@
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
-mod netlink;
+pub mod netlink;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 mod genetlink;

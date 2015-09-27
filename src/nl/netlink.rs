@@ -1,5 +1,3 @@
-extern crate num;
-
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, PartialEq)]
 pub enum NetlinkFamily {
