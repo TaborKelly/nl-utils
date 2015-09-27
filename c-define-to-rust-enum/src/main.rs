@@ -17,6 +17,7 @@ struct Args {
     input: Option<String>,
     output: Option<String>,
     name: String,
+    c_enum: bool,
     display: bool,
     fromstr: bool,
     fromprimative: bool,
@@ -36,6 +37,7 @@ fn parse_options() -> Args {
     opts.optopt("o", "output", "output file name (stdout if not specified)", "NAME");
     opts.optopt("", "name", "the enum name (Name if not specified)", "NAME");
     opts.optflag("h", "help", "print this help menu");
+    opts.optflag("", "enum", "parse C enum input instead of #define");
     opts.optflag("a", "all", "implment all of the traits (equivalent to \
                  --display --fromprimative --fromstr)");
     opts.optflag("", "display", "implement the std::fmt::Display trait");
@@ -54,6 +56,7 @@ fn parse_options() -> Args {
     let name = matches.opt_str("name");
     // apply default name
     a.name = name.unwrap_or(String::from("Name"));
+    a.c_enum = matches.opt_present("enum");
     a.display = matches.opt_present("display");
     a.fromprimative = matches.opt_present("fromprimative");
     a.fromstr = matches.opt_present("fromstr");
@@ -74,16 +77,27 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 /// Return a sorted Vec of CEnum structs
-fn parse_buff<T: BufRead>(read: T) -> Vec<CEnum> {
+fn parse_buff<T: BufRead>(read: T, parse_enum: bool) -> Vec<CEnum> {
     use std::str::FromStr;
     use regex::Regex;
-    let re = Regex::new(r"^#define[:space:]+([:graph:]+)[:space:]+([:digit:]+)").unwrap();
+    let re = match parse_enum {
+        true => Regex::new(r"^[:space:]*([:graph:]+)([:space:]*=[:space:]*([:digit:]+))?[:space:]*,").unwrap(),
+        false => Regex::new(r"^#define[:space:]+([:graph:]+)[:space:]+([:digit:]+)").unwrap(),
+    };
     let mut v: Vec<CEnum> = Vec::new();
 
+    let mut num: i32 = 0;
     for line in read.lines() {
         let s = line.unwrap();
         for cap in re.captures_iter(&s) {
-            let i: i32 = FromStr::from_str(cap.at(2).unwrap()).unwrap();
+            let i: i32 = match parse_enum {
+                true => match cap.at(3) {
+                    Some(s) => FromStr::from_str(s).unwrap(),
+                    None => num,
+                },
+                false => FromStr::from_str(cap.at(2).unwrap()).unwrap(),
+            };
+            num = i + 1;
             v.push(CEnum::new(i, cap.at(1).unwrap()));
         }
     }
@@ -97,11 +111,11 @@ fn get_input(args: &Args) -> Vec<CEnum> {
         Some(ref s) => {
             let f = File::open(s).unwrap();
             let r = BufReader::new(f);
-            parse_buff(r)
+            parse_buff(r, args.c_enum)
         }
         None => {
             let r = BufReader::new(std::io::stdin());
-            parse_buff(r)
+            parse_buff(r, args.c_enum)
         }
     }
 }
@@ -260,7 +274,7 @@ impl ::std::cmp::Ord for CEnum {
 }
 
 #[test]
-fn teste_CENum_order() {
+fn test_CENum_order() {
     let a = CEnum::new(0, "");
     let b = CEnum::new(1, "");
     let c = CEnum::new(2, "");
@@ -285,11 +299,37 @@ fn test_parse_buff() {
 
     let buff = Cursor::new(s.as_bytes());
 
-    let v = parse_buff(buff);
+    let v = parse_buff(buff, false);
 
     assert!(v[0].i == 0); assert!(v[0].s == "NETLINK_ROUTE");
     assert!(v[1].i == 1); assert!(v[1].s == "NETLINK_UNUSED");
     assert!(v[2].i == 3); assert!(v[2].s == "NETLINK_FIREWALL");
     assert!(v[3].i == 4); assert!(v[3].s == "NETLINK_SOCK_DIAG");
     assert!(v[4].i == 16); assert!(v[4].s == "NETLINK_GENERIC");
+}
+
+#[test]
+fn test_parse_buff_enum() {
+    use std::io::Cursor;
+    let s = "RTM_NEWLINK    = 16,\n\
+             #define RTM_NEWLINK    RTM_NEWLINK\n\
+                 RTM_DELLINK,\n\
+             #define RTM_DELLINK    RTM_DELLINK\n\
+                 RTM_GETLINK,\n\
+             #define RTM_GETLINK    RTM_GETLINK\n\
+                 RTM_SETLINK,\n\
+             #define RTM_SETLINK    RTM_SETLINK\n\n\
+                 RTM_NEWADDR    = 20,\n\
+             #define RTM_NEWADDR    RTM_NEWADDR\n\
+                 RTM_DELADDR,";
+
+    let buff = Cursor::new(s.as_bytes());
+    let v = parse_buff(buff, true);
+
+    assert!(v[0].i == 16); assert!(v[0].s == "RTM_NEWLINK");
+    assert!(v[1].i == 17); assert!(v[1].s == "RTM_DELLINK");
+    assert!(v[2].i == 18); assert!(v[2].s == "RTM_GETLINK");
+    assert!(v[3].i == 19); assert!(v[3].s == "RTM_SETLINK");
+    assert!(v[4].i == 20); assert!(v[4].s == "RTM_NEWADDR");
+    assert!(v[5].i == 21); assert!(v[5].s == "RTM_DELADDR");
 }
