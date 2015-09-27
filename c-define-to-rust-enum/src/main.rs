@@ -170,7 +170,7 @@ struct FormatOutputEnum;
 impl FormatOutput for FormatOutputEnum {
     fn write(&self, w: &mut Write, name: &String, vec: &Vec<CEnum>){
         w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
-        w.write(format!("enum {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("pub enum {} {{\n", name).as_bytes()).unwrap();
 
         for v in vec {
             w.write(format!("    {} = {},\n", v.s, v.i).as_bytes()).unwrap();
