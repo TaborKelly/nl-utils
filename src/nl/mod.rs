@@ -3,10 +3,25 @@
 pub mod netlink;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
+pub mod rtnetlink;
+#[allow(dead_code)]
+#[allow(non_camel_case_types)]
 mod genetlink;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 mod nl80211;
+
+/* TODO:
+ - consistant derives for all enums
+ - ifinfomsg
+ - ifaddrmsg
+ - rtmsg
+ - ndmsg
+ - nda_cacheinfo
+ - tcmsg
+
+  Padding
+*/
 
 use ::std;
 use ::std::io::Cursor;
@@ -73,11 +88,33 @@ impl CookedHeader {
     }
 }
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum NlMsgTypeEnum {
+    Raw(u16),
+    NlMsgType(netlink::NlMsgType),
+    NrMsgType(rtnetlink::NrMsgType),
+}
+impl ::std::fmt::Display for NlMsgTypeEnum {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            NlMsgTypeEnum::Raw(ref u) => write!(f, "Raw({})", u),
+            NlMsgTypeEnum::NlMsgType(ref u) => write!(f, "NlMsgType({})", u),
+            NlMsgTypeEnum::NrMsgType(ref u) => write!(f, "NrMsgType({})", u),
+        }
+    }
+}
+impl Default for NlMsgTypeEnum {
+    fn default() -> NlMsgTypeEnum {
+        NlMsgTypeEnum::Raw(0)
+    }
+}
+
 #[derive(Debug)]
 #[derive(Default)]
 pub struct Nlmsghdr {
     pub nlmsg_len: u32,
-    pub nlmsg_type: u16,
+    pub nlmsg_type: NlMsgTypeEnum,
     pub nlmsg_flags: u16,
     pub nlmsg_seq: u32,
     pub nlmsg_pid: u32,
@@ -92,11 +129,21 @@ impl fmt::Display for Nlmsghdr {
 }
 impl Nlmsghdr {
     // Netlink header is native endian
-    pub fn read(cursor: &mut std::io::Cursor<&[u8]>) -> Nlmsghdr {
+    pub fn read(cursor: &mut std::io::Cursor<&[u8]>,
+               family: netlink::NetlinkFamily) -> Nlmsghdr {
         let mut s = Nlmsghdr::default();
 
         s.nlmsg_len = cursor.read_u32::<NativeEndian>().unwrap();
-        s.nlmsg_type = cursor.read_u16::<NativeEndian>().unwrap();
+        let nlmsg_type = cursor.read_u16::<NativeEndian>().unwrap();
+        s.nlmsg_type = match nlmsg_type {
+            // TODO: revisit magic numbers
+            1 ... 4 => NlMsgTypeEnum::NlMsgType(netlink::NlMsgType::from_u64(nlmsg_type as u64).unwrap()),
+            _ => match family {
+                // TODO: revisit syntax
+                netlink::NetlinkFamily::NETLINK_ROUTE => NlMsgTypeEnum::NrMsgType(rtnetlink::NrMsgType::from_u64(nlmsg_type as u64).unwrap()),
+                _ => NlMsgTypeEnum::Raw(nlmsg_type),
+            }
+        };
         s.nlmsg_flags = cursor.read_u16::<NativeEndian>().unwrap();
         s.nlmsg_seq = cursor.read_u32::<NativeEndian>().unwrap();
         s.nlmsg_pid = cursor.read_u32::<NativeEndian>().unwrap();
@@ -117,7 +164,7 @@ impl NlMsg
         let mut cursor = Cursor::new(data);
         let cookedheader = CookedHeader::read(&mut cursor);
         nlmsg.netlink_family = cookedheader.netlink_family;
-        nlmsg.nlmsghdr = Nlmsghdr::read(&mut cursor);
+        nlmsg.nlmsghdr = Nlmsghdr::read(&mut cursor, cookedheader.netlink_family);
         nlmsg
     }
 }
@@ -155,11 +202,11 @@ fn test_nlmsghdr_read() {
                     0, 0, 26, 0, 5, 3, 89, 7, 185, 85, 249, 2, 128, 0, 32, 0,
                     0, 0, 8, 0, 3, 0, 2, 0, 0, 0, 8, 0, 1, 0, 0, 0, 0, 0];
     let mut cursor = Cursor::new(&raw_data[COOKED_HEADER_SIZE ..] as &[u8]);
-    let h = Nlmsghdr::read(&mut cursor);
+    let h = Nlmsghdr::read(&mut cursor, netlink::NetlinkFamily::NETLINK_GENERIC);
     println!("h = {:?}", h);
 
     assert!(h.nlmsg_len == 36);
-    assert!(h.nlmsg_type == 26);
+    assert!(h.nlmsg_type == NlMsgTypeEnum::Raw(26));
     assert!(h.nlmsg_flags == 773);
     assert!(h.nlmsg_seq == 1438189401);
     assert!(h.nlmsg_pid == 8389369);
@@ -175,7 +222,7 @@ fn test_NlMsg_read() {
 
     assert!(msg.netlink_family == netlink::NetlinkFamily::NETLINK_GENERIC);
     assert!(msg.nlmsghdr.nlmsg_len == 36);
-    assert!(msg.nlmsghdr.nlmsg_type == 26);
+    assert!(msg.nlmsghdr.nlmsg_type == NlMsgTypeEnum::Raw(26));
     assert!(msg.nlmsghdr.nlmsg_flags == 773);
     assert!(msg.nlmsghdr.nlmsg_seq == 1438189401);
     assert!(msg.nlmsghdr.nlmsg_pid == 8389369);
