@@ -151,8 +151,10 @@ impl Nlmsghdr {
     }
 }
 
-#[derive(Debug)]
-#[derive(Default)]
+// I would prefer to use an associated constant but they are still experimental
+const NLMSG_ALIGNTO: u64 = 4;
+
+#[derive(Debug, Default)]
 pub struct NlMsg {
     pub netlink_family: netlink::NetlinkFamily,
     pub nlmsghdr: Nlmsghdr,
@@ -166,6 +168,13 @@ impl NlMsg
         nlmsg.netlink_family = cookedheader.netlink_family;
         nlmsg.nlmsghdr = Nlmsghdr::read(&mut cursor, cookedheader.netlink_family);
         nlmsg
+    }
+    /// This function lets you align the cursor to the next NLMSG_ALIGNTO (4)
+    /// byte boundry.
+    fn nlmsg_align(cursor: &mut std::io::Cursor<&[u8]>) {
+        let mut pos = cursor.position();
+        pos = ((pos)+NLMSG_ALIGNTO-1) & !(NLMSG_ALIGNTO-1);
+        cursor.set_position(pos);
     }
 }
 impl fmt::Display for NlMsg {
@@ -226,4 +235,39 @@ fn test_NlMsg_read() {
     assert!(msg.nlmsghdr.nlmsg_flags == 773);
     assert!(msg.nlmsghdr.nlmsg_seq == 1438189401);
     assert!(msg.nlmsghdr.nlmsg_pid == 8389369);
+}
+
+#[test]
+fn test_NlMsg_nlmsg_align() {
+    let raw_data = [0u8, 0, 0, 0, 0, 0, 0, 0];
+    let mut cursor = Cursor::new(&raw_data as &[u8]);
+
+    assert!(cursor.position() == 0);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 0);
+
+    cursor.set_position(1);
+    assert!(cursor.position() == 1);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 4);
+
+    cursor.set_position(4);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 4);
+
+    cursor.set_position(5);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 8);
+
+    cursor.set_position(6);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 8);
+
+    cursor.set_position(7);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 8);
+
+    cursor.set_position(8);
+    NlMsg::nlmsg_align(&mut cursor);
+    assert!(cursor.position() == 8);
 }
