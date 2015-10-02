@@ -4,23 +4,14 @@ pub mod netlink;
 #[allow(dead_code)]
 #[allow(non_camel_case_types)]
 pub mod rtnetlink;
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-mod genetlink;
-#[allow(dead_code)]
-#[allow(non_camel_case_types)]
-mod nl80211;
 
 /* TODO:
- - consistant derives for all enums
  - ifinfomsg
  - ifaddrmsg
  - rtmsg
  - ndmsg
  - nda_cacheinfo
  - tcmsg
-
-  Padding
 */
 
 use ::std;
@@ -110,8 +101,7 @@ impl Default for NlMsgTypeEnum {
     }
 }
 
-#[derive(Debug)]
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Nlmsghdr {
     pub nlmsg_len: u32,
     pub nlmsg_type: NlMsgTypeEnum,
