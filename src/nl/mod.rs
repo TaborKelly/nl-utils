@@ -6,12 +6,11 @@ pub mod netlink;
 pub mod rtnetlink;
 
 /* TODO:
- - ifinfomsg
- - ifaddrmsg
  - rtmsg
  - ndmsg
  - nda_cacheinfo
  - tcmsg
+ - attributes
 */
 
 use ::std;
@@ -154,9 +153,8 @@ pub enum NlMsgEnum {
     None, // no body expected
     Unsupported, // we don't support this body type
     MalfromedPacket, // the packet was malformed
-    Ifinfomsg(rtnetlink::Ifinfomsg)
-    // NlMsgType(netlink::NlMsgType),
-    // NrMsgType(rtnetlink::NrMsgType),
+    Ifinfomsg(rtnetlink::Ifinfomsg),
+    Ifaddrmsg(rtnetlink::Ifaddrmsg),
 }
 impl NlMsgEnum {
     // Netlink header is native endian
@@ -173,7 +171,15 @@ impl NlMsgEnum {
                         Some(msg) => NlMsgEnum::Ifinfomsg(msg),
                         None => NlMsgEnum::MalfromedPacket
                     }
-                    // NlMsgEnum::Ifinfomsg(rtnetlink::Ifinfomsg::read(cursor))
+                }
+                else if *u == rtnetlink::NrMsgType::RTM_NEWADDR ||
+                   *u == rtnetlink::NrMsgType::RTM_DELADDR ||
+                   *u == rtnetlink::NrMsgType::RTM_GETADDR {
+                    let o = rtnetlink::Ifaddrmsg::read(cursor);
+                    match o {
+                        Some(msg) => NlMsgEnum::Ifaddrmsg(msg),
+                        None => NlMsgEnum::MalfromedPacket
+                    }
                 }
                 else {
                     NlMsgEnum::default()
@@ -192,8 +198,7 @@ impl ::std::fmt::Display for NlMsgEnum {
             NlMsgEnum::Unsupported => write!(f, "Unsupported"),
             NlMsgEnum::MalfromedPacket => write!(f, "MalfromedPacket"),
             NlMsgEnum::Ifinfomsg(ref u) => write!(f, "Ifinfomsg({})", u),
-            // NlMsgTypeEnum::NrMsgType(ref u) => write!(f, "NrMsgType({})", u),
-            // _ => panic!("unsupported NlMsgEnum in fmt()")
+            NlMsgEnum::Ifaddrmsg(ref u) => write!(f, "Ifaddrmsg({})", u),
         }
     }
 }

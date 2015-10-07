@@ -6,8 +6,6 @@ use ::byteorder::{NativeEndian, ReadBytesExt};
 // s = where to unwrap the result to if it isn't an error
 macro_rules! read_and_handle_error {
     ($s:expr, $r:expr) => {{
-        (println!(stringify!($s)));
-        (println!(stringify!($r)));
         let tmp = $r;
         if tmp.is_err() {
             return None;
@@ -28,7 +26,6 @@ impl Ifinfomsg {
     // Ifinfomsg header is native endian
     pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ifinfomsg> {
         let mut s = Ifinfomsg::default();
-        println!("cursor.position() = {}", cursor.position());
 
         read_and_handle_error!(s.ifi_family, cursor.read_u8());
         let mut __ifi_pad: u8 = 0;
@@ -48,6 +45,38 @@ impl ::std::fmt::Display for Ifinfomsg {
                ifi_index: {},\n\tifi_flags: {:#x},\n\tifi_change: {}\n}}",
                self.ifi_family, self.ifi_type, self.ifi_index,
                self.ifi_flags, self.ifi_change)
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone)]
+pub struct Ifaddrmsg {
+    pub ifa_family: u8, // Address type
+    pub ifa_prefixlen: u8, // Prefixlength of address
+    pub ifa_flags: u8, // Address flags
+    pub ifa_scope: u8, // Address scope
+    pub ifa_index: u32, // Interface index
+}
+impl Ifaddrmsg {
+    // Ifaddrmsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ifaddrmsg> {
+        let mut s = Ifaddrmsg::default();
+
+        read_and_handle_error!(s.ifa_family, cursor.read_u8());
+        read_and_handle_error!(s.ifa_prefixlen, cursor.read_u8());
+        read_and_handle_error!(s.ifa_flags, cursor.read_u8());
+        read_and_handle_error!(s.ifa_scope, cursor.read_u8());
+        read_and_handle_error!(s.ifa_index, cursor.read_u32::<NativeEndian>());
+
+        Some(s)
+    }
+}
+impl ::std::fmt::Display for Ifaddrmsg {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{{\n\tifa_family: {},\n\tifa_prefixlen: {},\n\t\
+               ifa_flags: {:#x},\n\tifa_scope: {},\n\tifa_index: {}\n}}",
+               self.ifa_family, self.ifa_prefixlen, self.ifa_flags,
+               self.ifa_scope, self.ifa_index)
     }
 }
 
