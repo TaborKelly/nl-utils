@@ -28,8 +28,8 @@ impl Ifinfomsg {
         let mut s = Ifinfomsg::default();
 
         read_and_handle_error!(s.ifi_family, cursor.read_u8());
-        let mut __ifi_pad: u8 = 0;
-        read_and_handle_error!(__ifi_pad, cursor.read_u8());
+        let mut _ifi_pad: u8 = 0;
+        read_and_handle_error!(_ifi_pad, cursor.read_u8());
         read_and_handle_error!(s.ifi_type, cursor.read_u16::<NativeEndian>());
         read_and_handle_error!(s.ifi_index, cursor.read_i32::<NativeEndian>());
         read_and_handle_error!(s.ifi_flags, cursor.read_u32::<NativeEndian>());
@@ -124,6 +124,48 @@ impl ::std::fmt::Display for Rtmsg {
                self.rtm_family, self.rtm_dst_len, self.rtm_src_len,
                self.rtm_tos, self.rtm_table, self.rtm_protocol, self.rtm_scope,
                self.rtm_type, self.rtm_flags)
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone)]
+pub struct Ndmsg {
+    pub ndm_family: u8,
+    pub ndm_ifindex: i32, // Interface index
+    pub ndm_state: u16, // State
+    pub ndm_flags: u8, // Flags
+    pub ndm_type: u8,
+    // TODO: option nda_cacheinfo
+}
+impl Ndmsg {
+    // Ifinfomsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ndmsg> {
+        let mut s = Ndmsg::default();
+
+        read_and_handle_error!(s.ndm_family, cursor.read_u8());
+        let mut _ndm_pad_u8: u8 = 0;
+        read_and_handle_error!(_ndm_pad_u8, cursor.read_u8());
+        let mut _ndm_pad_u16: u16 = 0;
+        read_and_handle_error!(_ndm_pad_u16, cursor.read_u16::<NativeEndian>());
+        read_and_handle_error!(s.ndm_ifindex, cursor.read_i32::<NativeEndian>());
+        read_and_handle_error!(s.ndm_state, cursor.read_u16::<NativeEndian>());
+        read_and_handle_error!(s.ndm_flags, cursor.read_u8());
+        read_and_handle_error!(s.ndm_type, cursor.read_u8());
+
+        // TODO revisit: add support for NDA_CACHEINFO/nda_cacheinfo
+        if s.ndm_type == 3 {
+            panic!("Add support for NDA_CACHEINFO/nda_cacheinfo!");
+        }
+
+        Some(s)
+    }
+}
+impl ::std::fmt::Display for Ndmsg {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{{\n\tndm_family: {},\n\tndm_ifindex: {},\n\t\
+               ndm_state: {:#x},\n\tndm_flags: {:#x},\n\tndm_type: {}\n}}",
+               self.ndm_family, self.ndm_ifindex, self.ndm_state,
+               self.ndm_flags, self.ndm_type)
     }
 }
 
