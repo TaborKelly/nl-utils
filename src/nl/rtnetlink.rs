@@ -169,6 +169,42 @@ impl ::std::fmt::Display for Ndmsg {
     }
 }
 
+#[derive(Debug, Default, Copy, Clone)]
+pub struct Tcmsg {
+    pub tcm_family: u8,
+    pub tcm_ifindex: i32,
+    pub tcm_handle: u32,
+    pub tcm_parent: u32,
+    pub tcm_info: u32,
+}
+impl Tcmsg {
+    // Ifinfomsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Tcmsg> {
+        let mut s = Tcmsg::default();
+
+        read_and_handle_error!(s.tcm_family, cursor.read_u8());
+        let mut _tcm_pad_u8: u8 = 0;
+        read_and_handle_error!(_tcm_pad_u8, cursor.read_u8());
+        let mut _tcm_pad_u16: u16 = 0;
+        read_and_handle_error!(_tcm_pad_u16, cursor.read_u16::<NativeEndian>());
+        read_and_handle_error!(s.tcm_ifindex, cursor.read_i32::<NativeEndian>());
+        read_and_handle_error!(s.tcm_handle, cursor.read_u32::<NativeEndian>());
+        read_and_handle_error!(s.tcm_parent, cursor.read_u32::<NativeEndian>());
+        read_and_handle_error!(s.tcm_info, cursor.read_u32::<NativeEndian>());
+
+        Some(s)
+    }
+}
+impl ::std::fmt::Display for Tcmsg {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{{\n\ttcm_family: {},\n\ttcm_ifindex: {},\n\t\
+               tcm_handle: {:#x},\n\ttcm_parent: {:#x},\n\ttcm_info: {}\n}}",
+               self.tcm_family, self.tcm_ifindex, self.tcm_handle,
+               self.tcm_parent, self.tcm_info)
+    }
+}
+
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum NrMsgType {

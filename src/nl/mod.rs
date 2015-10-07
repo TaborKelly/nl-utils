@@ -7,9 +7,9 @@ pub mod rtnetlink;
 
 /* TODO:
  - nda_cacheinfo
- - tcmsg
  - attributes
  - multiple message bodies per packet
+ - custom formatters for indented output
 */
 
 use ::std;
@@ -19,8 +19,7 @@ use ::std::fmt;
 
 use ::num::FromPrimitive;
 
-// TODO: implement custom formatters for indented output
-// &mut std::io::Cursor<&[u8]>
+// given a cursor, this will tell you how big it is
 fn get_size(cursor: &mut std::io::Cursor<&[u8]>) -> u64 {
     let pos = cursor.position();
     let end = cursor.seek(SeekFrom::End(0));
@@ -156,6 +155,7 @@ pub enum NlMsgEnum {
     Ifaddrmsg(rtnetlink::Ifaddrmsg),
     Rtmsg(rtnetlink::Rtmsg),
     Ndmsg(rtnetlink::Ndmsg),
+    Tcmsg(rtnetlink::Tcmsg),
 }
 impl NlMsgEnum {
     // Netlink header is native endian
@@ -200,6 +200,21 @@ impl NlMsgEnum {
                         None => NlMsgEnum::MalfromedPacket
                     }
                 }
+                else if *u == rtnetlink::NrMsgType::RTM_NEWQDISC ||
+                   *u == rtnetlink::NrMsgType::RTM_DELQDISC ||
+                   *u == rtnetlink::NrMsgType::RTM_GETQDISC ||
+                   *u == rtnetlink::NrMsgType::RTM_NEWTCLASS ||
+                   *u == rtnetlink::NrMsgType::RTM_DELTCLASS ||
+                   *u == rtnetlink::NrMsgType::RTM_GETTCLASS ||
+                   *u == rtnetlink::NrMsgType::RTM_NEWTFILTER ||
+                   *u == rtnetlink::NrMsgType::RTM_DELTFILTER ||
+                   *u == rtnetlink::NrMsgType::RTM_GETTFILTER {
+                    let o = rtnetlink::Tcmsg::read(cursor);
+                    match o {
+                        Some(msg) => NlMsgEnum::Tcmsg(msg),
+                        None => NlMsgEnum::MalfromedPacket
+                    }
+                }
                 else {
                     NlMsgEnum::default()
                 }
@@ -220,6 +235,7 @@ impl ::std::fmt::Display for NlMsgEnum {
             NlMsgEnum::Ifaddrmsg(ref u) => write!(f, "Ifaddrmsg({})", u),
             NlMsgEnum::Rtmsg(ref u) => write!(f, "Rtmsg({})", u),
             NlMsgEnum::Ndmsg(ref u) => write!(f, "Ndmsg({})", u),
+            NlMsgEnum::Tcmsg(ref u) => write!(f, "Tcmsg({})", u),
         }
     }
 }
