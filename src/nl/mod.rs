@@ -6,11 +6,11 @@ pub mod netlink;
 pub mod rtnetlink;
 
 /* TODO:
- - rtmsg
  - ndmsg
  - nda_cacheinfo
  - tcmsg
  - attributes
+ - multiple message bodies per packet
 */
 
 use ::std;
@@ -155,6 +155,7 @@ pub enum NlMsgEnum {
     MalfromedPacket, // the packet was malformed
     Ifinfomsg(rtnetlink::Ifinfomsg),
     Ifaddrmsg(rtnetlink::Ifaddrmsg),
+    Rtmsg(rtnetlink::Rtmsg),
 }
 impl NlMsgEnum {
     // Netlink header is native endian
@@ -181,6 +182,15 @@ impl NlMsgEnum {
                         None => NlMsgEnum::MalfromedPacket
                     }
                 }
+                else if *u == rtnetlink::NrMsgType::RTM_NEWROUTE ||
+                   *u == rtnetlink::NrMsgType::RTM_DELROUTE ||
+                   *u == rtnetlink::NrMsgType::RTM_GETROUTE {
+                    let o = rtnetlink::Rtmsg::read(cursor);
+                    match o {
+                        Some(msg) => NlMsgEnum::Rtmsg(msg),
+                        None => NlMsgEnum::MalfromedPacket
+                    }
+                }
                 else {
                     NlMsgEnum::default()
                 }
@@ -199,6 +209,7 @@ impl ::std::fmt::Display for NlMsgEnum {
             NlMsgEnum::MalfromedPacket => write!(f, "MalfromedPacket"),
             NlMsgEnum::Ifinfomsg(ref u) => write!(f, "Ifinfomsg({})", u),
             NlMsgEnum::Ifaddrmsg(ref u) => write!(f, "Ifaddrmsg({})", u),
+            NlMsgEnum::Rtmsg(ref u) => write!(f, "Rtmsg({})", u),
         }
     }
 }

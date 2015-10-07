@@ -80,6 +80,53 @@ impl ::std::fmt::Display for Ifaddrmsg {
     }
 }
 
+#[derive(Debug, Default, Copy, Clone)]
+pub struct Rtmsg {
+    pub rtm_family: u8, // Address family of route
+    pub rtm_dst_len: u8, // Length of destination
+    pub rtm_src_len: u8, // Length of source
+    pub rtm_tos: u8, // TOS filter
+
+    pub rtm_table: u8, // Routing table ID
+    pub rtm_protocol: u8, // Routing protocol
+    pub rtm_scope: u8,
+    pub rtm_type: u8,
+
+    pub rtm_flags: u32,
+}
+impl Rtmsg {
+    // Ifaddrmsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Rtmsg> {
+        let mut s = Rtmsg::default();
+
+        read_and_handle_error!(s.rtm_family, cursor.read_u8());
+        read_and_handle_error!(s.rtm_dst_len, cursor.read_u8());
+        read_and_handle_error!(s.rtm_src_len, cursor.read_u8());
+        read_and_handle_error!(s.rtm_tos, cursor.read_u8());
+
+        read_and_handle_error!(s.rtm_table, cursor.read_u8());
+        read_and_handle_error!(s.rtm_protocol, cursor.read_u8());
+        read_and_handle_error!(s.rtm_scope, cursor.read_u8());
+        read_and_handle_error!(s.rtm_type, cursor.read_u8());
+
+        read_and_handle_error!(s.rtm_flags, cursor.read_u32::<NativeEndian>());
+
+        Some(s)
+    }
+}
+impl ::std::fmt::Display for Rtmsg {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{{\n\trtm_family: {},\n\trtm_dst_len: {},\n\t\
+               rtm_src_len: {},\n\trtm_tos: {},\n\trtm_table: {}\n\t\
+               rtm_protocol: {},\n\trtm_scope: {},\n\trtm_type: {}\n\t\
+               rtm_flags: {:#x}\n}}",
+               self.rtm_family, self.rtm_dst_len, self.rtm_src_len,
+               self.rtm_tos, self.rtm_table, self.rtm_protocol, self.rtm_scope,
+               self.rtm_type, self.rtm_flags)
+    }
+}
+
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum NrMsgType {
