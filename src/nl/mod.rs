@@ -15,13 +15,20 @@ pub mod rtnetlink;
 */
 
 use ::std;
-use ::std::io::Cursor;
+use ::std::io::{Cursor, Seek, SeekFrom};
 use ::byteorder::{BigEndian, NativeEndian, ReadBytesExt};
 use ::std::fmt;
 
 use ::num::FromPrimitive;
 
 // TODO: implement custom formatters for indented output
+// &mut std::io::Cursor<&[u8]>
+fn get_size(cursor: &mut std::io::Cursor<&[u8]>) -> u64 {
+    let pos = cursor.position();
+    let end = cursor.seek(SeekFrom::End(0));
+    cursor.set_position(pos);
+    end.unwrap()
+}
 
 // Cooked SLL header is big endian (network byte order)
 // http://www.tcpdump.org/linktypes/LINKTYPE_LINUX_SLL.html
@@ -141,13 +148,70 @@ impl Nlmsghdr {
     }
 }
 
+// TODO: revisti name... NlMsgBody?
+#[derive(Debug, Copy, Clone)]
+pub enum NlMsgEnum {
+    None, // no body expected
+    Unsupported, // we don't support this body type
+    MalfromedPacket, // the packet was malformed
+    Ifinfomsg(rtnetlink::Ifinfomsg)
+    // NlMsgType(netlink::NlMsgType),
+    // NrMsgType(rtnetlink::NrMsgType),
+}
+impl NlMsgEnum {
+    // Netlink header is native endian
+    pub fn read(cursor: &mut std::io::Cursor<&[u8]>,
+               nlmsg_type: NlMsgTypeEnum) -> NlMsgEnum {
+
+        match nlmsg_type {
+            NlMsgTypeEnum::NrMsgType(ref u) => {
+                if *u == rtnetlink::NrMsgType::RTM_NEWLINK ||
+                   *u == rtnetlink::NrMsgType::RTM_DELLINK ||
+                   *u == rtnetlink::NrMsgType::RTM_GETLINK {
+                    let o = rtnetlink::Ifinfomsg::read(cursor);
+                    match o {
+                        Some(msg) => NlMsgEnum::Ifinfomsg(msg),
+                        None => NlMsgEnum::MalfromedPacket
+                    }
+                    // NlMsgEnum::Ifinfomsg(rtnetlink::Ifinfomsg::read(cursor))
+                }
+                else {
+                    NlMsgEnum::default()
+                }
+            },
+            NlMsgTypeEnum::NlMsgType(_) => NlMsgEnum::None,
+            _ => NlMsgEnum::default()
+        }
+    }
+}
+impl ::std::fmt::Display for NlMsgEnum {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            NlMsgEnum::None => write!(f, "None"),
+            NlMsgEnum::Unsupported => write!(f, "Unsupported"),
+            NlMsgEnum::MalfromedPacket => write!(f, "MalfromedPacket"),
+            NlMsgEnum::Ifinfomsg(ref u) => write!(f, "Ifinfomsg({})", u),
+            // NlMsgTypeEnum::NrMsgType(ref u) => write!(f, "NrMsgType({})", u),
+            // _ => panic!("unsupported NlMsgEnum in fmt()")
+        }
+    }
+}
+impl Default for NlMsgEnum {
+    fn default() -> NlMsgEnum {
+        NlMsgEnum::Unsupported
+    }
+}
+
 // I would prefer to use an associated constant but they are still experimental
 const NLMSG_ALIGNTO: u64 = 4;
 
+// TODO: names
 #[derive(Debug, Default)]
 pub struct NlMsg {
     pub netlink_family: netlink::NetlinkFamily,
     pub nlmsghdr: Nlmsghdr,
+    pub nlmsg: NlMsgEnum,
 }
 impl NlMsg
 {
@@ -157,6 +221,7 @@ impl NlMsg
         let cookedheader = CookedHeader::read(&mut cursor);
         nlmsg.netlink_family = cookedheader.netlink_family;
         nlmsg.nlmsghdr = Nlmsghdr::read(&mut cursor, cookedheader.netlink_family);
+        nlmsg.nlmsg = NlMsgEnum::read(&mut cursor, nlmsg.nlmsghdr.nlmsg_type);
         nlmsg
     }
     /// This function lets you align the cursor to the next NLMSG_ALIGNTO (4)
@@ -173,6 +238,8 @@ impl fmt::Display for NlMsg {
         self.netlink_family.fmt(f).unwrap();
         write!(f, "\n\tnlmsghdr: ").unwrap();
         self.nlmsghdr.fmt(f).unwrap();
+        write!(f, "\n\tnlmsg: ").unwrap();
+        self.nlmsg.fmt(f).unwrap();
         write!(f, "}}\n")
     }
 }

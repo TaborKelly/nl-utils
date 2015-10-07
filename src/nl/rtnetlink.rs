@@ -1,3 +1,68 @@
+use ::std::io::{Cursor};
+use ::byteorder::{NativeEndian, ReadBytesExt};
+
+#[derive(Debug, Default, Copy, Clone)]
+pub struct Ifinfomsg {
+    pub ifi_family: u8, // AF_UNSPEC
+    pub ifi_type: u16,  // Device type
+    pub ifi_index: i32, // Interface index
+    pub ifi_flags: u32, // Device flags
+    pub ifi_change: u32, // change mask
+}
+impl Ifinfomsg {
+    // Ifinfomsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ifinfomsg> {
+        let mut s = Ifinfomsg::default();
+        println!("cursor.position() = {}", cursor.position());
+
+        let tmp = cursor.read_u8();
+        if tmp.is_err() {
+            return None;
+        }
+        s.ifi_family = tmp.unwrap();
+
+        let tmp = cursor.read_u8();
+        if tmp.is_err() {
+            return None;
+        }
+        let __ifi_pad = tmp.unwrap();
+
+        let tmp = cursor.read_u16::<NativeEndian>();
+        if tmp.is_err() {
+            return None;
+        }
+        s.ifi_type = tmp.unwrap();
+
+        let tmp = cursor.read_i32::<NativeEndian>();
+        if tmp.is_err() {
+            return None;
+        }
+        s.ifi_index = tmp.unwrap();
+
+        let tmp = cursor.read_u32::<NativeEndian>();
+        if tmp.is_err() {
+            return None;
+        }
+        s.ifi_flags = tmp.unwrap();
+
+        let tmp = cursor.read_u32::<NativeEndian>();
+        if tmp.is_err() {
+            return None;
+        }
+        s.ifi_change = tmp.unwrap();
+        Some(s)
+    }
+}
+impl ::std::fmt::Display for Ifinfomsg {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        write!(f, "{{\n\tifi_family: {},\n\tifi_type: {},\n\t\
+               ifi_index: {},\n\tifi_flags: {:#x},\n\tifi_change: {}\n}}",
+               self.ifi_family, self.ifi_type, self.ifi_index,
+               self.ifi_flags, self.ifi_change)
+    }
+}
+
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum NrMsgType {
