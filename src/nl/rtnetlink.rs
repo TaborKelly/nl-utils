@@ -1,6 +1,21 @@
 use ::std::io::{Cursor};
 use ::byteorder::{NativeEndian, ReadBytesExt};
 
+// A macro for reading and returning None on error.
+// r = an expresssion that will return/evaluate to a Result
+// s = where to unwrap the result to if it isn't an error
+macro_rules! read_and_handle_error {
+    ($s:expr, $r:expr) => {{
+        (println!(stringify!($s)));
+        (println!(stringify!($r)));
+        let tmp = $r;
+        if tmp.is_err() {
+            return None;
+        }
+        $s = tmp.unwrap();
+    }}
+}
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Ifinfomsg {
     pub ifi_family: u8, // AF_UNSPEC
@@ -15,41 +30,14 @@ impl Ifinfomsg {
         let mut s = Ifinfomsg::default();
         println!("cursor.position() = {}", cursor.position());
 
-        let tmp = cursor.read_u8();
-        if tmp.is_err() {
-            return None;
-        }
-        s.ifi_family = tmp.unwrap();
+        read_and_handle_error!(s.ifi_family, cursor.read_u8());
+        let mut __ifi_pad: u8 = 0;
+        read_and_handle_error!(__ifi_pad, cursor.read_u8());
+        read_and_handle_error!(s.ifi_type, cursor.read_u16::<NativeEndian>());
+        read_and_handle_error!(s.ifi_index, cursor.read_i32::<NativeEndian>());
+        read_and_handle_error!(s.ifi_flags, cursor.read_u32::<NativeEndian>());
+        read_and_handle_error!(s.ifi_change, cursor.read_u32::<NativeEndian>());
 
-        let tmp = cursor.read_u8();
-        if tmp.is_err() {
-            return None;
-        }
-        let __ifi_pad = tmp.unwrap();
-
-        let tmp = cursor.read_u16::<NativeEndian>();
-        if tmp.is_err() {
-            return None;
-        }
-        s.ifi_type = tmp.unwrap();
-
-        let tmp = cursor.read_i32::<NativeEndian>();
-        if tmp.is_err() {
-            return None;
-        }
-        s.ifi_index = tmp.unwrap();
-
-        let tmp = cursor.read_u32::<NativeEndian>();
-        if tmp.is_err() {
-            return None;
-        }
-        s.ifi_flags = tmp.unwrap();
-
-        let tmp = cursor.read_u32::<NativeEndian>();
-        if tmp.is_err() {
-            return None;
-        }
-        s.ifi_change = tmp.unwrap();
         Some(s)
     }
 }
