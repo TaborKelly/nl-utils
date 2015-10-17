@@ -1,6 +1,8 @@
 use ::std::io::{Cursor};
 use ::byteorder::{NativeEndian, ReadBytesExt};
 use ::num::FromPrimitive;
+use ::std::fmt;
+use nl::{format_indent};
 
 // A macro for reading and returning None on error.
 // r = an expresssion that will return/evaluate to a Result
@@ -198,15 +200,22 @@ impl Ifinfomsg {
 
         Some(s)
     }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    ifi_family: {},\n", indent, self.ifi_family).unwrap();
+        write!(f, "{}    ifi_type: {},\n", indent, self.ifi_type).unwrap();
+        write!(f, "{}    ifi_index: {},\n", indent, self.ifi_index).unwrap();
+        write!(f, "{}    ifi_flags: {:#X} (", indent, self.ifi_flags).unwrap();
+        NetDeviceFlags::fmt_pretty(f, self.ifi_flags).unwrap();
+        write!(f, "),\n{}    ifi_change: {}\n", indent, self.ifi_change).unwrap();
+        write!(f, "{}}}", indent)
+    }
 }
 impl ::std::fmt::Display for Ifinfomsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{{\n\tifi_family: {},\n\tifi_type: {},\n\t\
-               ifi_index: {},\n\tifi_flags: {:#x} (", self.ifi_family,
-               self.ifi_type, self.ifi_index, self.ifi_flags).unwrap();
-        NetDeviceFlags::fmt_pretty(f, self.ifi_flags).unwrap();
-        write!(f,"),\n\tifi_change: {}\n}}", self.ifi_change)
+        self.pretty_fmt(f, 0)
     }
 }
 
@@ -231,14 +240,21 @@ impl Ifaddrmsg {
 
         Some(s)
     }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    ifa_family: {},\n", indent, self.ifa_family).unwrap();
+        write!(f, "{}    ifa_prefixlen: {},\n", indent, self.ifa_prefixlen).unwrap();
+        write!(f, "{}    ifa_flags: {:#X}\n", indent, self.ifa_flags).unwrap();
+        write!(f, "{}    ifa_scope: {},\n", indent, self.ifa_scope).unwrap();
+        write!(f, "{}    ifa_index: {},\n", indent, self.ifa_index).unwrap();
+        write!(f, "{}}}", indent)
+    }
 }
 impl ::std::fmt::Display for Ifaddrmsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{{\n\tifa_family: {},\n\tifa_prefixlen: {},\n\t\
-               ifa_flags: {:#x},\n\tifa_scope: {},\n\tifa_index: {}\n}}",
-               self.ifa_family, self.ifa_prefixlen, self.ifa_flags,
-               self.ifa_scope, self.ifa_index)
+        self.pretty_fmt(f, 0)
     }
 }
 
@@ -275,17 +291,25 @@ impl Rtmsg {
 
         Some(s)
     }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    rtm_family: {},\n", indent, self.rtm_family).unwrap();
+        write!(f, "{}    rtm_dst_len: {},\n", indent, self.rtm_dst_len).unwrap();
+        write!(f, "{}    rtm_src_len: {}\n", indent, self.rtm_src_len).unwrap();
+        write!(f, "{}    rtm_tos: {},\n", indent, self.rtm_tos).unwrap();
+        write!(f, "{}    rtm_table: {},\n", indent, self.rtm_table).unwrap();
+        write!(f, "{}    rtm_protocol: {},\n", indent, self.rtm_protocol).unwrap();
+        write!(f, "{}    rtm_scope: {},\n", indent, self.rtm_scope).unwrap();
+        write!(f, "{}    rtm_type: {},\n", indent, self.rtm_type).unwrap();
+        write!(f, "{}    rtm_flags: {:#X}\n", indent, self.rtm_flags).unwrap();
+        write!(f, "{}}}", indent)
+    }
 }
 impl ::std::fmt::Display for Rtmsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{{\n\trtm_family: {},\n\trtm_dst_len: {},\n\t\
-               rtm_src_len: {},\n\trtm_tos: {},\n\trtm_table: {}\n\t\
-               rtm_protocol: {},\n\trtm_scope: {},\n\trtm_type: {}\n\t\
-               rtm_flags: {:#x}\n}}",
-               self.rtm_family, self.rtm_dst_len, self.rtm_src_len,
-               self.rtm_tos, self.rtm_table, self.rtm_protocol, self.rtm_scope,
-               self.rtm_type, self.rtm_flags)
+        self.pretty_fmt(f, 0)
     }
 }
 
@@ -320,14 +344,21 @@ impl Ndmsg {
 
         Some(s)
     }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    ndm_family: {},\n", indent, self.ndm_family).unwrap();
+        write!(f, "{}    ndm_ifindex: {},\n", indent, self.ndm_ifindex).unwrap();
+        write!(f, "{}    ndm_state: {:#X}\n", indent, self.ndm_state).unwrap();
+        write!(f, "{}    ndm_flags: {:#X}\n", indent, self.ndm_flags).unwrap();
+        write!(f, "{}    ndm_type: {},\n", indent, self.ndm_type).unwrap();
+        write!(f, "{}}}", indent)
+    }
 }
 impl ::std::fmt::Display for Ndmsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{{\n\tndm_family: {},\n\tndm_ifindex: {},\n\t\
-               ndm_state: {:#x},\n\tndm_flags: {:#x},\n\tndm_type: {}\n}}",
-               self.ndm_family, self.ndm_ifindex, self.ndm_state,
-               self.ndm_flags, self.ndm_type)
+        self.pretty_fmt(f, 0)
     }
 }
 
@@ -356,14 +387,21 @@ impl Tcmsg {
 
         Some(s)
     }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    tcm_family: {},\n", indent, self.tcm_family).unwrap();
+        write!(f, "{}    tcm_ifindex: {},\n", indent, self.tcm_ifindex).unwrap();
+        write!(f, "{}    tcm_handle: {:#X}\n", indent, self.tcm_handle).unwrap();
+        write!(f, "{}    tcm_parent: {:#X}\n", indent, self.tcm_parent).unwrap();
+        write!(f, "{}    tcm_info: {},\n", indent, self.tcm_info).unwrap();
+        write!(f, "{}}}", indent)
+    }
 }
 impl ::std::fmt::Display for Tcmsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        write!(f, "{{\n\ttcm_family: {},\n\ttcm_ifindex: {},\n\t\
-               tcm_handle: {:#x},\n\ttcm_parent: {:#x},\n\ttcm_info: {}\n}}",
-               self.tcm_family, self.tcm_ifindex, self.tcm_handle,
-               self.tcm_parent, self.tcm_info)
+        self.pretty_fmt(f, 0)
     }
 }
 

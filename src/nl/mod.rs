@@ -9,7 +9,7 @@ pub mod rtnetlink;
  - nda_cacheinfo
  - attributes
  - multiple message bodies per packet
- - custom formatters for indented output
+ - checking result from write!()
 */
 
 use ::std;
@@ -25,6 +25,14 @@ fn get_size(cursor: &mut std::io::Cursor<&[u8]>) -> u64 {
     let end = cursor.seek(SeekFrom::End(0));
     cursor.set_position(pos);
     end.unwrap()
+}
+
+fn format_indent(indent: i32) -> String {
+    let mut s = String::new();
+    for _ in 0..indent {
+        s.push_str("    ");
+    }
+    s
 }
 
 // Cooked SLL header is big endian (network byte order)
@@ -115,10 +123,7 @@ pub struct Nlmsghdr {
 }
 impl fmt::Display for Nlmsghdr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{{\n\tnlmsg_len: {},\n\tnlmsg_type: {},\n\t\
-               nlmsg_flags: {:#x},\n\tnlmsg_seq: {},\n\tnlmsg_pid: {}\n}}",
-               self.nlmsg_len, self.nlmsg_type, self.nlmsg_flags,
-               self.nlmsg_seq, self.nlmsg_pid)
+        self.pretty_fmt(f, 0)
     }
 }
 impl Nlmsghdr {
@@ -142,6 +147,16 @@ impl Nlmsghdr {
         s.nlmsg_seq = cursor.read_u32::<NativeEndian>().unwrap();
         s.nlmsg_pid = cursor.read_u32::<NativeEndian>().unwrap();
         s
+    }
+    fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    nlmsg_len: {},\n", indent, self.nlmsg_len).unwrap();
+        write!(f, "{}    nlmsg_type: {},\n", indent, self.nlmsg_type).unwrap();
+        write!(f, "{}    nlmsg_flags: {:#X},\n", indent, self.nlmsg_flags).unwrap();
+        write!(f, "{}    nlmsg_seq: {},\n", indent, self.nlmsg_seq).unwrap();
+        write!(f, "{}    nlmsg_pid: {},\n", indent, self.nlmsg_pid).unwrap();
+        write!(f, "{}}}", indent)
     }
 }
 
@@ -223,20 +238,45 @@ impl NlMsgEnum {
             _ => NlMsgEnum::default()
         }
     }
+    fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        // Take care of the simple cases first
+        match *self {
+            NlMsgEnum::None => return write!(f, "None"),
+            NlMsgEnum::Unsupported => return write!(f, "Unsupported"),
+            NlMsgEnum::MalfromedPacket => return write!(f, "MalfromedPacket"),
+            _ => {},
+        }
+
+        match *self {
+            NlMsgEnum::Ifinfomsg(ref u) => {
+                write!(f, "Ifinfomsg(").unwrap();
+                u.pretty_fmt(f, indent+1).unwrap();
+            }
+            NlMsgEnum::Ifaddrmsg(ref u) => {
+                write!(f, "Ifaddrmsg(").unwrap();
+                u.pretty_fmt(f, indent+1).unwrap();
+            }
+            NlMsgEnum::Rtmsg(ref u) => {
+                write!(f, "Rtmsg(").unwrap();
+                u.pretty_fmt(f, indent+1).unwrap();
+            }
+            NlMsgEnum::Ndmsg(ref u) => {
+                write!(f, "Ndmsg(").unwrap();
+                u.pretty_fmt(f, indent+1).unwrap();
+            }
+            NlMsgEnum::Tcmsg(ref u) => {
+                write!(f, "Tcmsg(").unwrap();
+                u.pretty_fmt(f, indent+1).unwrap();
+            }
+            _ => {},
+        }
+        write!(f, ")")
+    }
 }
 impl ::std::fmt::Display for NlMsgEnum {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match *self {
-            NlMsgEnum::None => write!(f, "None"),
-            NlMsgEnum::Unsupported => write!(f, "Unsupported"),
-            NlMsgEnum::MalfromedPacket => write!(f, "MalfromedPacket"),
-            NlMsgEnum::Ifinfomsg(ref u) => write!(f, "Ifinfomsg({})", u),
-            NlMsgEnum::Ifaddrmsg(ref u) => write!(f, "Ifaddrmsg({})", u),
-            NlMsgEnum::Rtmsg(ref u) => write!(f, "Rtmsg({})", u),
-            NlMsgEnum::Ndmsg(ref u) => write!(f, "Ndmsg({})", u),
-            NlMsgEnum::Tcmsg(ref u) => write!(f, "Tcmsg({})", u),
-        }
+        self.pretty_fmt(f, 0)
     }
 }
 impl Default for NlMsgEnum {
@@ -273,16 +313,19 @@ impl NlMsg
         pos = ((pos)+NLMSG_ALIGNTO-1) & !(NLMSG_ALIGNTO-1);
         cursor.set_position(pos);
     }
+    fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let i_s = format_indent(indent);
+        write!(f, "{{\n").unwrap();
+        write!(f, "{}    netlink_family: {}\n", i_s, self.netlink_family).unwrap();
+        write!(f, "{}    nlmsghdr: ", i_s).unwrap();
+        self.nlmsghdr.pretty_fmt(f, indent+1).unwrap();
+        write!(f, "\n{}    nlmsg: {}\n", i_s, self.nlmsg).unwrap();
+        write!(f, "}}")
+    }
 }
 impl fmt::Display for NlMsg {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{{\n\tnetlink_family: ").unwrap();
-        self.netlink_family.fmt(f).unwrap();
-        write!(f, "\n\tnlmsghdr: ").unwrap();
-        self.nlmsghdr.fmt(f).unwrap();
-        write!(f, "\n\tnlmsg: ").unwrap();
-        self.nlmsg.fmt(f).unwrap();
-        write!(f, "}}\n")
+        self.pretty_fmt(f, 0)
     }
 }
 

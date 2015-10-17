@@ -83,8 +83,7 @@ fn print_packets(args: &Args) {
             None => (),
         };
 
-        println!("packet = {}", p);
-        println!("nlmsg = {}", nlmsg);
+        println!("packet[{}] = {}", p, nlmsg);
     }
 }
 
