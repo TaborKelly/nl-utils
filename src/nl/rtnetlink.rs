@@ -162,10 +162,10 @@ impl NetDeviceFlags {
             let tmp = result & flags;
             if tmp > 0 {
                 if found {
-                    write!(f, "|").unwrap();
+                    try!(write!(f, "|"));
                 }
                 let flag = NetDeviceFlags::from_u32(tmp).unwrap();
-                write!(f, "{}", flag).unwrap();
+                try!(write!(f, "{}", flag));
                 found = true;
             }
 
@@ -202,13 +202,13 @@ impl Ifinfomsg {
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    ifi_family: {},\n", indent, self.ifi_family).unwrap();
-        write!(f, "{}    ifi_type: {},\n", indent, self.ifi_type).unwrap();
-        write!(f, "{}    ifi_index: {},\n", indent, self.ifi_index).unwrap();
-        write!(f, "{}    ifi_flags: {:#X} (", indent, self.ifi_flags).unwrap();
-        NetDeviceFlags::fmt_pretty(f, self.ifi_flags).unwrap();
-        write!(f, "),\n{}    ifi_change: {}\n", indent, self.ifi_change).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    ifi_family: {},\n", indent, self.ifi_family));
+        try!(write!(f, "{}    ifi_type: {},\n", indent, self.ifi_type));
+        try!(write!(f, "{}    ifi_index: {},\n", indent, self.ifi_index));
+        try!(write!(f, "{}    ifi_flags: {:#X} (", indent, self.ifi_flags));
+        try!(NetDeviceFlags::fmt_pretty(f, self.ifi_flags));
+        try!(write!(f, "),\n{}    ifi_change: {}\n", indent, self.ifi_change));
         write!(f, "{}}}", indent)
     }
 }
@@ -242,12 +242,12 @@ impl Ifaddrmsg {
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    ifa_family: {},\n", indent, self.ifa_family).unwrap();
-        write!(f, "{}    ifa_prefixlen: {},\n", indent, self.ifa_prefixlen).unwrap();
-        write!(f, "{}    ifa_flags: {:#X}\n", indent, self.ifa_flags).unwrap();
-        write!(f, "{}    ifa_scope: {},\n", indent, self.ifa_scope).unwrap();
-        write!(f, "{}    ifa_index: {},\n", indent, self.ifa_index).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    ifa_family: {},\n", indent, self.ifa_family));
+        try!(write!(f, "{}    ifa_prefixlen: {},\n", indent, self.ifa_prefixlen));
+        try!(write!(f, "{}    ifa_flags: {:#X}\n", indent, self.ifa_flags));
+        try!(write!(f, "{}    ifa_scope: {},\n", indent, self.ifa_scope));
+        try!(write!(f, "{}    ifa_index: {},\n", indent, self.ifa_index));
         write!(f, "{}}}", indent)
     }
 }
@@ -293,16 +293,16 @@ impl Rtmsg {
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    rtm_family: {},\n", indent, self.rtm_family).unwrap();
-        write!(f, "{}    rtm_dst_len: {},\n", indent, self.rtm_dst_len).unwrap();
-        write!(f, "{}    rtm_src_len: {}\n", indent, self.rtm_src_len).unwrap();
-        write!(f, "{}    rtm_tos: {},\n", indent, self.rtm_tos).unwrap();
-        write!(f, "{}    rtm_table: {},\n", indent, self.rtm_table).unwrap();
-        write!(f, "{}    rtm_protocol: {},\n", indent, self.rtm_protocol).unwrap();
-        write!(f, "{}    rtm_scope: {},\n", indent, self.rtm_scope).unwrap();
-        write!(f, "{}    rtm_type: {},\n", indent, self.rtm_type).unwrap();
-        write!(f, "{}    rtm_flags: {:#X}\n", indent, self.rtm_flags).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    rtm_family: {},\n", indent, self.rtm_family));
+        try!(write!(f, "{}    rtm_dst_len: {},\n", indent, self.rtm_dst_len));
+        try!(write!(f, "{}    rtm_src_len: {}\n", indent, self.rtm_src_len));
+        try!(write!(f, "{}    rtm_tos: {},\n", indent, self.rtm_tos));
+        try!(write!(f, "{}    rtm_table: {},\n", indent, self.rtm_table));
+        try!(write!(f, "{}    rtm_protocol: {},\n", indent, self.rtm_protocol));
+        try!(write!(f, "{}    rtm_scope: {},\n", indent, self.rtm_scope));
+        try!(write!(f, "{}    rtm_type: {},\n", indent, self.rtm_type));
+        try!(write!(f, "{}    rtm_flags: {:#X}\n", indent, self.rtm_flags));
         write!(f, "{}}}", indent)
     }
 }
@@ -346,12 +346,12 @@ impl Ndmsg {
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    ndm_family: {},\n", indent, self.ndm_family).unwrap();
-        write!(f, "{}    ndm_ifindex: {},\n", indent, self.ndm_ifindex).unwrap();
-        write!(f, "{}    ndm_state: {:#X}\n", indent, self.ndm_state).unwrap();
-        write!(f, "{}    ndm_flags: {:#X}\n", indent, self.ndm_flags).unwrap();
-        write!(f, "{}    ndm_type: {},\n", indent, self.ndm_type).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    ndm_family: {},\n", indent, self.ndm_family));
+        try!(write!(f, "{}    ndm_ifindex: {},\n", indent, self.ndm_ifindex));
+        try!(write!(f, "{}    ndm_state: {:#X}\n", indent, self.ndm_state));
+        try!(write!(f, "{}    ndm_flags: {:#X}\n", indent, self.ndm_flags));
+        try!(write!(f, "{}    ndm_type: {},\n", indent, self.ndm_type));
         write!(f, "{}}}", indent)
     }
 }
@@ -389,12 +389,12 @@ impl Tcmsg {
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    tcm_family: {},\n", indent, self.tcm_family).unwrap();
-        write!(f, "{}    tcm_ifindex: {},\n", indent, self.tcm_ifindex).unwrap();
-        write!(f, "{}    tcm_handle: {:#X}\n", indent, self.tcm_handle).unwrap();
-        write!(f, "{}    tcm_parent: {:#X}\n", indent, self.tcm_parent).unwrap();
-        write!(f, "{}    tcm_info: {},\n", indent, self.tcm_info).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    tcm_family: {},\n", indent, self.tcm_family));
+        try!(write!(f, "{}    tcm_ifindex: {},\n", indent, self.tcm_ifindex));
+        try!(write!(f, "{}    tcm_handle: {:#X}\n", indent, self.tcm_handle));
+        try!(write!(f, "{}    tcm_parent: {:#X}\n", indent, self.tcm_parent));
+        try!(write!(f, "{}    tcm_info: {},\n", indent, self.tcm_info));
         write!(f, "{}}}", indent)
     }
 }

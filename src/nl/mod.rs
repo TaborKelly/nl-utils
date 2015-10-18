@@ -6,10 +6,10 @@ pub mod netlink;
 pub mod rtnetlink;
 
 /* TODO:
- - nda_cacheinfo
- - attributes
- - multiple message bodies per packet
  - checking result from write!()
+ - attributes
+ - nda_cacheinfo
+ - multiple message bodies per packet
 */
 
 use ::std;
@@ -57,19 +57,7 @@ impl Default for CookedHeader {
 }
 impl fmt::Display for CookedHeader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{{\n\theader_type: {},\n\tarphdr_type: {},\n\t\
-               address_length: {}\n\taddress = [",
-               self.header_type, self.arphdr_type,
-               self.address_length).unwrap();
-        let mut count: usize = 1;
-        for a in self.address.iter() {
-            write!(f, " {}", a).unwrap();
-            if count < self.address.len() {
-                write!(f, ",").unwrap();
-            }
-            count = count + 1;
-        }
-        write!(f, " ],\n\tnetlink_family: {}\n}}", self.netlink_family)
+        self.pretty_fmt(f, 0)
     }
 }
 impl CookedHeader {
@@ -88,6 +76,24 @@ impl CookedHeader {
         assert!(cursor.position() as usize == COOKED_HEADER_SIZE);
 
         c
+    }
+    fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    header_type: {},\n", indent, self.header_type));
+        try!(write!(f, "{}    arphdr_type: {},\n", indent, self.arphdr_type));
+        try!(write!(f, "{}    address_length: {},\n", indent, self.address_length));
+        try!(write!(f, "{}    address = [", indent));
+        let mut count: usize = 1;
+        for a in self.address.iter() {
+            try!(write!(f, " {}", a));
+            if count < self.address.len() {
+                try!(write!(f, ","));
+            }
+            count = count + 1;
+        }
+        try!(write!(f, " ]\n{}    netlink_family: {},\n", indent, self.netlink_family));
+        write!(f, "{}}}", indent)
     }
 }
 
@@ -150,12 +156,12 @@ impl Nlmsghdr {
     }
     fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    nlmsg_len: {},\n", indent, self.nlmsg_len).unwrap();
-        write!(f, "{}    nlmsg_type: {},\n", indent, self.nlmsg_type).unwrap();
-        write!(f, "{}    nlmsg_flags: {:#X},\n", indent, self.nlmsg_flags).unwrap();
-        write!(f, "{}    nlmsg_seq: {},\n", indent, self.nlmsg_seq).unwrap();
-        write!(f, "{}    nlmsg_pid: {},\n", indent, self.nlmsg_pid).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    nlmsg_len: {},\n", indent, self.nlmsg_len));
+        try!(write!(f, "{}    nlmsg_type: {},\n", indent, self.nlmsg_type));
+        try!(write!(f, "{}    nlmsg_flags: {:#X},\n", indent, self.nlmsg_flags));
+        try!(write!(f, "{}    nlmsg_seq: {},\n", indent, self.nlmsg_seq));
+        try!(write!(f, "{}    nlmsg_pid: {},\n", indent, self.nlmsg_pid));
         write!(f, "{}}}", indent)
     }
 }
@@ -249,24 +255,24 @@ impl NlMsgEnum {
 
         match *self {
             NlMsgEnum::Ifinfomsg(ref u) => {
-                write!(f, "Ifinfomsg(").unwrap();
-                u.pretty_fmt(f, indent+1).unwrap();
+                try!(write!(f, "Ifinfomsg("));
+                try!(u.pretty_fmt(f, indent+1));
             }
             NlMsgEnum::Ifaddrmsg(ref u) => {
-                write!(f, "Ifaddrmsg(").unwrap();
-                u.pretty_fmt(f, indent+1).unwrap();
+                try!(write!(f, "Ifaddrmsg("));
+                try!(u.pretty_fmt(f, indent+1));
             }
             NlMsgEnum::Rtmsg(ref u) => {
-                write!(f, "Rtmsg(").unwrap();
-                u.pretty_fmt(f, indent+1).unwrap();
+                try!(write!(f, "Rtmsg("));
+                try!(u.pretty_fmt(f, indent+1));
             }
             NlMsgEnum::Ndmsg(ref u) => {
-                write!(f, "Ndmsg(").unwrap();
-                u.pretty_fmt(f, indent+1).unwrap();
+                try!(write!(f, "Ndmsg("));
+                try!(u.pretty_fmt(f, indent+1));
             }
             NlMsgEnum::Tcmsg(ref u) => {
-                write!(f, "Tcmsg(").unwrap();
-                u.pretty_fmt(f, indent+1).unwrap();
+                try!(write!(f, "Tcmsg("));
+                try!(u.pretty_fmt(f, indent+1));
             }
             _ => {},
         }
@@ -315,11 +321,11 @@ impl NlMsg
     }
     fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
-        write!(f, "{{\n").unwrap();
-        write!(f, "{}    netlink_family: {}\n", i_s, self.netlink_family).unwrap();
-        write!(f, "{}    nlmsghdr: ", i_s).unwrap();
-        self.nlmsghdr.pretty_fmt(f, indent+1).unwrap();
-        write!(f, "\n{}    nlmsg: {}\n", i_s, self.nlmsg).unwrap();
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    netlink_family: {}\n", i_s, self.netlink_family));
+        try!(write!(f, "{}    nlmsghdr: ", i_s));
+        try!(self.nlmsghdr.pretty_fmt(f, indent+1));
+        try!(write!(f, "\n{}    nlmsg: {}\n", i_s, self.nlmsg));
         write!(f, "}}")
     }
 }
