@@ -2,9 +2,13 @@ use ::std::io::{Cursor};
 use ::byteorder::{NativeEndian, ReadBytesExt};
 use ::num::FromPrimitive;
 use ::std::fmt;
-use nl::{format_indent};
+use nl::{format_indent, NlMsg};
 
-// TODO: flags and family for all msg types
+// TODO:
+// - flags for all msg types
+// - family for all msg types
+// - attributes for all msg types
+// - better error handling (option vs Err)
 
 // A macro for reading and returning None on error.
 // r = an expresssion that will return/evaluate to a Result
@@ -429,13 +433,284 @@ impl Default for AddressFamily {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum Ifla {
+    IFLA_UNSPEC = 0,
+    IFLA_ADDRESS = 1,
+    IFLA_BROADCAST = 2,
+    IFLA_IFNAME = 3,
+    IFLA_MTU = 4,
+    IFLA_LINK = 5,
+    IFLA_QDISC = 6,
+    IFLA_STATS = 7,
+    IFLA_COST = 8,
+    IFLA_PRIORITY = 9,
+    IFLA_MASTER = 10,
+    IFLA_WIRELESS = 11,
+    IFLA_PROTINFO = 12,
+    IFLA_TXQLEN = 13,
+    IFLA_MAP = 14,
+    IFLA_WEIGHT = 15,
+    IFLA_OPERSTATE = 16,
+    IFLA_LINKMODE = 17,
+    IFLA_LINKINFO = 18,
+    IFLA_NET_NS_PID = 19,
+    IFLA_IFALIAS = 20,
+    IFLA_NUM_VF = 21,
+    IFLA_VFINFO_LIST = 22,
+    IFLA_STATS64 = 23,
+    IFLA_VF_PORTS = 24,
+    IFLA_PORT_SELF = 25,
+    IFLA_AF_SPEC = 26,
+    IFLA_GROUP = 27,
+    IFLA_NET_NS_FD = 28,
+    IFLA_EXT_MASK = 29,
+    IFLA_PROMISCUITY = 30,
+    IFLA_NUM_TX_QUEUES = 31,
+    IFLA_NUM_RX_QUEUES = 32,
+    IFLA_CARRIER = 33,
+    IFLA_PHYS_PORT_ID = 34,
+    IFLA_CARRIER_CHANGES = 35,
+    IFLA_PHYS_SWITCH_ID = 36,
+}
+impl ::std::str::FromStr for Ifla {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "IFLA_UNSPEC" => Ok(Ifla::IFLA_UNSPEC),
+            "IFLA_ADDRESS" => Ok(Ifla::IFLA_ADDRESS),
+            "IFLA_BROADCAST" => Ok(Ifla::IFLA_BROADCAST),
+            "IFLA_IFNAME" => Ok(Ifla::IFLA_IFNAME),
+            "IFLA_MTU" => Ok(Ifla::IFLA_MTU),
+            "IFLA_LINK" => Ok(Ifla::IFLA_LINK),
+            "IFLA_QDISC" => Ok(Ifla::IFLA_QDISC),
+            "IFLA_STATS" => Ok(Ifla::IFLA_STATS),
+            "IFLA_COST" => Ok(Ifla::IFLA_COST),
+            "IFLA_PRIORITY" => Ok(Ifla::IFLA_PRIORITY),
+            "IFLA_MASTER" => Ok(Ifla::IFLA_MASTER),
+            "IFLA_WIRELESS" => Ok(Ifla::IFLA_WIRELESS),
+            "IFLA_PROTINFO" => Ok(Ifla::IFLA_PROTINFO),
+            "IFLA_TXQLEN" => Ok(Ifla::IFLA_TXQLEN),
+            "IFLA_MAP" => Ok(Ifla::IFLA_MAP),
+            "IFLA_WEIGHT" => Ok(Ifla::IFLA_WEIGHT),
+            "IFLA_OPERSTATE" => Ok(Ifla::IFLA_OPERSTATE),
+            "IFLA_LINKMODE" => Ok(Ifla::IFLA_LINKMODE),
+            "IFLA_LINKINFO" => Ok(Ifla::IFLA_LINKINFO),
+            "IFLA_NET_NS_PID" => Ok(Ifla::IFLA_NET_NS_PID),
+            "IFLA_IFALIAS" => Ok(Ifla::IFLA_IFALIAS),
+            "IFLA_NUM_VF" => Ok(Ifla::IFLA_NUM_VF),
+            "IFLA_VFINFO_LIST" => Ok(Ifla::IFLA_VFINFO_LIST),
+            "IFLA_STATS64" => Ok(Ifla::IFLA_STATS64),
+            "IFLA_VF_PORTS" => Ok(Ifla::IFLA_VF_PORTS),
+            "IFLA_PORT_SELF" => Ok(Ifla::IFLA_PORT_SELF),
+            "IFLA_AF_SPEC" => Ok(Ifla::IFLA_AF_SPEC),
+            "IFLA_GROUP" => Ok(Ifla::IFLA_GROUP),
+            "IFLA_NET_NS_FD" => Ok(Ifla::IFLA_NET_NS_FD),
+            "IFLA_EXT_MASK" => Ok(Ifla::IFLA_EXT_MASK),
+            "IFLA_PROMISCUITY" => Ok(Ifla::IFLA_PROMISCUITY),
+            "IFLA_NUM_TX_QUEUES" => Ok(Ifla::IFLA_NUM_TX_QUEUES),
+            "IFLA_NUM_RX_QUEUES" => Ok(Ifla::IFLA_NUM_RX_QUEUES),
+            "IFLA_CARRIER" => Ok(Ifla::IFLA_CARRIER),
+            "IFLA_PHYS_PORT_ID" => Ok(Ifla::IFLA_PHYS_PORT_ID),
+            "IFLA_CARRIER_CHANGES" => Ok(Ifla::IFLA_CARRIER_CHANGES),
+            "IFLA_PHYS_SWITCH_ID" => Ok(Ifla::IFLA_PHYS_SWITCH_ID),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for Ifla {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            Ifla::IFLA_UNSPEC => write!(f, "IFLA_UNSPEC"),
+            Ifla::IFLA_ADDRESS => write!(f, "IFLA_ADDRESS"),
+            Ifla::IFLA_BROADCAST => write!(f, "IFLA_BROADCAST"),
+            Ifla::IFLA_IFNAME => write!(f, "IFLA_IFNAME"),
+            Ifla::IFLA_MTU => write!(f, "IFLA_MTU"),
+            Ifla::IFLA_LINK => write!(f, "IFLA_LINK"),
+            Ifla::IFLA_QDISC => write!(f, "IFLA_QDISC"),
+            Ifla::IFLA_STATS => write!(f, "IFLA_STATS"),
+            Ifla::IFLA_COST => write!(f, "IFLA_COST"),
+            Ifla::IFLA_PRIORITY => write!(f, "IFLA_PRIORITY"),
+            Ifla::IFLA_MASTER => write!(f, "IFLA_MASTER"),
+            Ifla::IFLA_WIRELESS => write!(f, "IFLA_WIRELESS"),
+            Ifla::IFLA_PROTINFO => write!(f, "IFLA_PROTINFO"),
+            Ifla::IFLA_TXQLEN => write!(f, "IFLA_TXQLEN"),
+            Ifla::IFLA_MAP => write!(f, "IFLA_MAP"),
+            Ifla::IFLA_WEIGHT => write!(f, "IFLA_WEIGHT"),
+            Ifla::IFLA_OPERSTATE => write!(f, "IFLA_OPERSTATE"),
+            Ifla::IFLA_LINKMODE => write!(f, "IFLA_LINKMODE"),
+            Ifla::IFLA_LINKINFO => write!(f, "IFLA_LINKINFO"),
+            Ifla::IFLA_NET_NS_PID => write!(f, "IFLA_NET_NS_PID"),
+            Ifla::IFLA_IFALIAS => write!(f, "IFLA_IFALIAS"),
+            Ifla::IFLA_NUM_VF => write!(f, "IFLA_NUM_VF"),
+            Ifla::IFLA_VFINFO_LIST => write!(f, "IFLA_VFINFO_LIST"),
+            Ifla::IFLA_STATS64 => write!(f, "IFLA_STATS64"),
+            Ifla::IFLA_VF_PORTS => write!(f, "IFLA_VF_PORTS"),
+            Ifla::IFLA_PORT_SELF => write!(f, "IFLA_PORT_SELF"),
+            Ifla::IFLA_AF_SPEC => write!(f, "IFLA_AF_SPEC"),
+            Ifla::IFLA_GROUP => write!(f, "IFLA_GROUP"),
+            Ifla::IFLA_NET_NS_FD => write!(f, "IFLA_NET_NS_FD"),
+            Ifla::IFLA_EXT_MASK => write!(f, "IFLA_EXT_MASK"),
+            Ifla::IFLA_PROMISCUITY => write!(f, "IFLA_PROMISCUITY"),
+            Ifla::IFLA_NUM_TX_QUEUES => write!(f, "IFLA_NUM_TX_QUEUES"),
+            Ifla::IFLA_NUM_RX_QUEUES => write!(f, "IFLA_NUM_RX_QUEUES"),
+            Ifla::IFLA_CARRIER => write!(f, "IFLA_CARRIER"),
+            Ifla::IFLA_PHYS_PORT_ID => write!(f, "IFLA_PHYS_PORT_ID"),
+            Ifla::IFLA_CARRIER_CHANGES => write!(f, "IFLA_CARRIER_CHANGES"),
+            Ifla::IFLA_PHYS_SWITCH_ID => write!(f, "IFLA_PHYS_SWITCH_ID"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for Ifla {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(Ifla::IFLA_UNSPEC),
+            1 => Some(Ifla::IFLA_ADDRESS),
+            2 => Some(Ifla::IFLA_BROADCAST),
+            3 => Some(Ifla::IFLA_IFNAME),
+            4 => Some(Ifla::IFLA_MTU),
+            5 => Some(Ifla::IFLA_LINK),
+            6 => Some(Ifla::IFLA_QDISC),
+            7 => Some(Ifla::IFLA_STATS),
+            8 => Some(Ifla::IFLA_COST),
+            9 => Some(Ifla::IFLA_PRIORITY),
+            10 => Some(Ifla::IFLA_MASTER),
+            11 => Some(Ifla::IFLA_WIRELESS),
+            12 => Some(Ifla::IFLA_PROTINFO),
+            13 => Some(Ifla::IFLA_TXQLEN),
+            14 => Some(Ifla::IFLA_MAP),
+            15 => Some(Ifla::IFLA_WEIGHT),
+            16 => Some(Ifla::IFLA_OPERSTATE),
+            17 => Some(Ifla::IFLA_LINKMODE),
+            18 => Some(Ifla::IFLA_LINKINFO),
+            19 => Some(Ifla::IFLA_NET_NS_PID),
+            20 => Some(Ifla::IFLA_IFALIAS),
+            21 => Some(Ifla::IFLA_NUM_VF),
+            22 => Some(Ifla::IFLA_VFINFO_LIST),
+            23 => Some(Ifla::IFLA_STATS64),
+            24 => Some(Ifla::IFLA_VF_PORTS),
+            25 => Some(Ifla::IFLA_PORT_SELF),
+            26 => Some(Ifla::IFLA_AF_SPEC),
+            27 => Some(Ifla::IFLA_GROUP),
+            28 => Some(Ifla::IFLA_NET_NS_FD),
+            29 => Some(Ifla::IFLA_EXT_MASK),
+            30 => Some(Ifla::IFLA_PROMISCUITY),
+            31 => Some(Ifla::IFLA_NUM_TX_QUEUES),
+            32 => Some(Ifla::IFLA_NUM_RX_QUEUES),
+            33 => Some(Ifla::IFLA_CARRIER),
+            34 => Some(Ifla::IFLA_PHYS_PORT_ID),
+            35 => Some(Ifla::IFLA_CARRIER_CHANGES),
+            36 => Some(Ifla::IFLA_PHYS_SWITCH_ID),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(Ifla::IFLA_UNSPEC),
+            1 => Some(Ifla::IFLA_ADDRESS),
+            2 => Some(Ifla::IFLA_BROADCAST),
+            3 => Some(Ifla::IFLA_IFNAME),
+            4 => Some(Ifla::IFLA_MTU),
+            5 => Some(Ifla::IFLA_LINK),
+            6 => Some(Ifla::IFLA_QDISC),
+            7 => Some(Ifla::IFLA_STATS),
+            8 => Some(Ifla::IFLA_COST),
+            9 => Some(Ifla::IFLA_PRIORITY),
+            10 => Some(Ifla::IFLA_MASTER),
+            11 => Some(Ifla::IFLA_WIRELESS),
+            12 => Some(Ifla::IFLA_PROTINFO),
+            13 => Some(Ifla::IFLA_TXQLEN),
+            14 => Some(Ifla::IFLA_MAP),
+            15 => Some(Ifla::IFLA_WEIGHT),
+            16 => Some(Ifla::IFLA_OPERSTATE),
+            17 => Some(Ifla::IFLA_LINKMODE),
+            18 => Some(Ifla::IFLA_LINKINFO),
+            19 => Some(Ifla::IFLA_NET_NS_PID),
+            20 => Some(Ifla::IFLA_IFALIAS),
+            21 => Some(Ifla::IFLA_NUM_VF),
+            22 => Some(Ifla::IFLA_VFINFO_LIST),
+            23 => Some(Ifla::IFLA_STATS64),
+            24 => Some(Ifla::IFLA_VF_PORTS),
+            25 => Some(Ifla::IFLA_PORT_SELF),
+            26 => Some(Ifla::IFLA_AF_SPEC),
+            27 => Some(Ifla::IFLA_GROUP),
+            28 => Some(Ifla::IFLA_NET_NS_FD),
+            29 => Some(Ifla::IFLA_EXT_MASK),
+            30 => Some(Ifla::IFLA_PROMISCUITY),
+            31 => Some(Ifla::IFLA_NUM_TX_QUEUES),
+            32 => Some(Ifla::IFLA_NUM_RX_QUEUES),
+            33 => Some(Ifla::IFLA_CARRIER),
+            34 => Some(Ifla::IFLA_PHYS_PORT_ID),
+            35 => Some(Ifla::IFLA_CARRIER_CHANGES),
+            36 => Some(Ifla::IFLA_PHYS_SWITCH_ID),
+            _ => None
+        }
+    }
+}
+impl Default for Ifla {
+    fn default() -> Ifla {
+        Ifla::IFLA_UNSPEC
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct Rtattr<T> {
+     // the length originally encoded in the netlink which includes rta_len,
+     // rta_type, and rta_value, but not any padding
+    rta_len: u16,
+    rta_type: T,
+    rta_value: Vec<u8>,
+}
+impl <T: Default + ::std::fmt::Display + ::num::traits::FromPrimitive> Rtattr<T> {
+    // Ifinfomsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Rtattr<T>> {
+        let mut s = Rtattr::default();
+        read_and_handle_error!(s.rta_len, cursor.read_u16::<NativeEndian>());
+        let rta_type: u16;
+        read_and_handle_error!(rta_type, cursor.read_u16::<NativeEndian>());
+        s.rta_type = T::from_u16(rta_type).unwrap();
+        // sizeof(rta_len) + sizeof(rta_type) = 4
+        let payload_len: usize = (s.rta_len - 4) as usize;
+        let mut vec: Vec<u8> = Vec::with_capacity(payload_len);
+        for _ in 0..payload_len {
+            let a = cursor.read_u8().unwrap();
+            vec.push(a);
+        }
+        s.rta_value = vec;
+        NlMsg::nlmsg_align(cursor);
+        Some(s)
+    }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    rta_len: {},\n", indent, self.rta_len));
+        try!(write!(f, "{}    rta_type: {},\n", indent, self.rta_type));
+        try!(write!(f, "{}    rta_value: [", indent));
+        let mut count: usize = 1;
+        for a in self.rta_value.iter() {
+            try!(write!(f, " {:#X}", a));
+            if count < self.rta_value.len() {
+                try!(write!(f, ","));
+            }
+            count = count + 1;
+        }
+        write!(f, " ],\n{}}}", indent)
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Ifinfomsg {
     pub ifi_family: AddressFamily, // AF_UNSPEC
     pub ifi_type: u16,  // Device type
     pub ifi_index: i32, // Interface index
     pub ifi_flags: u32, // Device flags
     pub ifi_change: u32, // change mask
+    pub ifi_attr: Vec<Rtattr<Ifla>>,
 }
 impl Ifinfomsg {
     // Ifinfomsg header is native endian
@@ -451,19 +726,26 @@ impl Ifinfomsg {
         read_and_handle_error!(s.ifi_index, cursor.read_i32::<NativeEndian>());
         read_and_handle_error!(s.ifi_flags, cursor.read_u32::<NativeEndian>());
         read_and_handle_error!(s.ifi_change, cursor.read_u32::<NativeEndian>());
+        // TODO: add support for more than one attr
+        let attr = Rtattr::<Ifla>::read(cursor).unwrap();
+        s.ifi_attr.push(attr);
 
         Some(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
-        let indent = format_indent(indent);
+        let i_s = format_indent(indent);
         try!(write!(f, "{{\n"));
-        try!(write!(f, "{}    ifi_family: {},\n", indent, self.ifi_family));
-        try!(write!(f, "{}    ifi_type: {},\n", indent, self.ifi_type));
-        try!(write!(f, "{}    ifi_index: {},\n", indent, self.ifi_index));
-        try!(write!(f, "{}    ifi_flags: {:#X} (", indent, self.ifi_flags));
+        try!(write!(f, "{}    ifi_family: {},\n", i_s, self.ifi_family));
+        try!(write!(f, "{}    ifi_type: {},\n", i_s, self.ifi_type));
+        try!(write!(f, "{}    ifi_index: {},\n", i_s, self.ifi_index));
+        try!(write!(f, "{}    ifi_flags: {:#X} (", i_s, self.ifi_flags));
         try!(NetDeviceFlags::fmt_pretty(f, self.ifi_flags));
-        try!(write!(f, "),\n{}    ifi_change: {}\n", indent, self.ifi_change));
-        write!(f, "{}}}", indent)
+        try!(write!(f, "),\n{}    ifi_change: {},\n", i_s, self.ifi_change));
+        try!(write!(f, "{}    ifi_attr: [ ", i_s));
+        for a in self.ifi_attr.iter() {
+            try!(a.pretty_fmt(f, indent+1));
+        }
+        write!(f, " ],\n{}}}", i_s)
     }
 }
 impl ::std::fmt::Display for Ifinfomsg {

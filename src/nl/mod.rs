@@ -9,6 +9,7 @@ pub mod rtnetlink;
  - attributes
  - nda_cacheinfo
  - multiple message bodies per packet
+ - ',' consistency in output
 */
 
 use ::std;
@@ -166,7 +167,7 @@ impl Nlmsghdr {
 }
 
 // TODO: revisti name... NlMsgBody?
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum NlMsgEnum {
     None, // no body expected
     Unsupported, // we don't support this body type
