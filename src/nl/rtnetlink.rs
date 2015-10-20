@@ -714,7 +714,7 @@ pub struct Ifinfomsg {
 }
 impl Ifinfomsg {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ifinfomsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Ifinfomsg> {
         let mut s = Ifinfomsg::default();
 
         let family: u8;
@@ -726,14 +726,16 @@ impl Ifinfomsg {
         read_and_handle_error!(s.ifi_index, cursor.read_i32::<NativeEndian>());
         read_and_handle_error!(s.ifi_flags, cursor.read_u32::<NativeEndian>());
         read_and_handle_error!(s.ifi_change, cursor.read_u32::<NativeEndian>());
-        // TODO: add support for more than one attr
-        let attr = Rtattr::<Ifla>::read(cursor).unwrap();
-        s.ifi_attr.push(attr);
+        while (cursor.position() as usize) < nlmsg_len {
+            let attr = Rtattr::<Ifla>::read(cursor).unwrap();
+            s.ifi_attr.push(attr);
+        }
 
         Some(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
+        let i_s_p = format_indent(indent+1);
         try!(write!(f, "{{\n"));
         try!(write!(f, "{}    ifi_family: {},\n", i_s, self.ifi_family));
         try!(write!(f, "{}    ifi_type: {},\n", i_s, self.ifi_type));
@@ -742,8 +744,14 @@ impl Ifinfomsg {
         try!(NetDeviceFlags::fmt_pretty(f, self.ifi_flags));
         try!(write!(f, "),\n{}    ifi_change: {},\n", i_s, self.ifi_change));
         try!(write!(f, "{}    ifi_attr: [ ", i_s));
+
+        let mut count: usize = 1;
         for a in self.ifi_attr.iter() {
             try!(a.pretty_fmt(f, indent+1));
+            if count < self.ifi_attr.len() {
+                try!(write!(f, ",\n{}", i_s_p));
+            }
+            count = count + 1;
         }
         write!(f, " ],\n{}}}", i_s)
     }

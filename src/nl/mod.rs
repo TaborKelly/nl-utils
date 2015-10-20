@@ -181,14 +181,15 @@ pub enum NlMsgEnum {
 impl NlMsgEnum {
     // Netlink header is native endian
     pub fn read(cursor: &mut std::io::Cursor<&[u8]>,
-               nlmsg_type: NlMsgTypeEnum) -> NlMsgEnum {
+               nlmsg_type: NlMsgTypeEnum,
+               nlmsg_len: usize) -> NlMsgEnum {
 
         match nlmsg_type {
             NlMsgTypeEnum::NrMsgType(ref u) => {
                 if *u == rtnetlink::NrMsgType::RTM_NEWLINK ||
                    *u == rtnetlink::NrMsgType::RTM_DELLINK ||
                    *u == rtnetlink::NrMsgType::RTM_GETLINK {
-                    let o = rtnetlink::Ifinfomsg::read(cursor);
+                    let o = rtnetlink::Ifinfomsg::read(cursor, nlmsg_len);
                     match o {
                         Some(msg) => NlMsgEnum::Ifinfomsg(msg),
                         None => NlMsgEnum::MalfromedPacket
@@ -309,7 +310,8 @@ impl NlMsg
         let cookedheader = CookedHeader::read(&mut cursor);
         nlmsg.netlink_family = cookedheader.netlink_family;
         nlmsg.nlmsghdr = Nlmsghdr::read(&mut cursor, cookedheader.netlink_family);
-        nlmsg.nlmsg = NlMsgEnum::read(&mut cursor, nlmsg.nlmsghdr.nlmsg_type);
+        nlmsg.nlmsg = NlMsgEnum::read(&mut cursor, nlmsg.nlmsghdr.nlmsg_type,
+                                      nlmsg.nlmsghdr.nlmsg_len as usize);
         nlmsg
     }
     /// This function lets you align the cursor to the next NLMSG_ALIGNTO (4)
