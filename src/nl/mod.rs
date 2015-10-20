@@ -6,7 +6,6 @@ pub mod netlink;
 pub mod rtnetlink;
 
 /* TODO:
- - checking result from write!()
  - attributes
  - nda_cacheinfo
  - multiple message bodies per packet
