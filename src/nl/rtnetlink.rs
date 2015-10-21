@@ -1000,7 +1000,7 @@ impl ::std::fmt::Display for Ifaddrmsg {
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Rtmsg {
-    pub rtm_family: u8, // Address family of route
+    pub rtm_family: AddressFamily, // Address family of route
     pub rtm_dst_len: u8, // Length of destination
     pub rtm_src_len: u8, // Length of source
     pub rtm_tos: u8, // TOS filter
@@ -1017,7 +1017,9 @@ impl Rtmsg {
     pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Rtmsg> {
         let mut s = Rtmsg::default();
 
-        read_and_handle_error!(s.rtm_family, cursor.read_u8());
+        let family: u8;
+        read_and_handle_error!(family, cursor.read_u8());
+        s.rtm_family = AddressFamily::from_u8(family).unwrap();
         read_and_handle_error!(s.rtm_dst_len, cursor.read_u8());
         read_and_handle_error!(s.rtm_src_len, cursor.read_u8());
         read_and_handle_error!(s.rtm_tos, cursor.read_u8());
