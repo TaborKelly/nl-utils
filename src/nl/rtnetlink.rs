@@ -154,7 +154,7 @@ impl ::num::traits::FromPrimitive for NetDeviceFlags {
     }
 }
 impl NetDeviceFlags {
-    fn fmt_pretty(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
+    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
         let mut shift: u32 = 0;
         let mut result: u32 = 1<<shift;
         let mut found = false;
@@ -735,7 +735,7 @@ impl Ifinfomsg {
         try!(write!(f, "{}    ifi_type: {},\n", i_s, self.ifi_type));
         try!(write!(f, "{}    ifi_index: {},\n", i_s, self.ifi_index));
         try!(write!(f, "{}    ifi_flags: {:#X} (", i_s, self.ifi_flags));
-        try!(NetDeviceFlags::fmt_pretty(f, self.ifi_flags));
+        try!(NetDeviceFlags::pretty_fmt(f, self.ifi_flags));
         try!(write!(f, "),\n{}    ifi_change: {},\n", i_s, self.ifi_change));
         try!(write!(f, "{}    ifi_attr: [ ", i_s));
 
@@ -754,6 +754,114 @@ impl ::std::fmt::Display for Ifinfomsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         self.pretty_fmt(f, 0)
+    }
+}
+
+#[allow(dead_code, non_camel_case_types)]
+pub enum IfaFlags {
+    IFA_F_SECONDARY = 0x1,
+    IFA_F_NODAD = 0x2,
+    IFA_F_OPTIMISTIC = 0x4,
+    IFA_F_DADFAILED = 0x8,
+    IFA_F_HOMEADDRESS = 0x10,
+    IFA_F_DEPRECATED = 0x20,
+    IFA_F_TENTATIVE = 0x40,
+    IFA_F_PERMANENT = 0x80,
+    IFA_F_MANAGETEMPADDR = 0x100,
+    IFA_F_NOPREFIXROUTE = 0x200,
+}
+impl ::std::str::FromStr for IfaFlags {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "IFA_F_SECONDARY" => Ok(IfaFlags::IFA_F_SECONDARY),
+            "IFA_F_NODAD" => Ok(IfaFlags::IFA_F_NODAD),
+            "IFA_F_OPTIMISTIC" => Ok(IfaFlags::IFA_F_OPTIMISTIC),
+            "IFA_F_DADFAILED" => Ok(IfaFlags::IFA_F_DADFAILED),
+            "IFA_F_HOMEADDRESS" => Ok(IfaFlags::IFA_F_HOMEADDRESS),
+            "IFA_F_DEPRECATED" => Ok(IfaFlags::IFA_F_DEPRECATED),
+            "IFA_F_TENTATIVE" => Ok(IfaFlags::IFA_F_TENTATIVE),
+            "IFA_F_PERMANENT" => Ok(IfaFlags::IFA_F_PERMANENT),
+            "IFA_F_MANAGETEMPADDR" => Ok(IfaFlags::IFA_F_MANAGETEMPADDR),
+            "IFA_F_NOPREFIXROUTE" => Ok(IfaFlags::IFA_F_NOPREFIXROUTE),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for IfaFlags {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            IfaFlags::IFA_F_SECONDARY => write!(f, "IFA_F_SECONDARY"),
+            IfaFlags::IFA_F_NODAD => write!(f, "IFA_F_NODAD"),
+            IfaFlags::IFA_F_OPTIMISTIC => write!(f, "IFA_F_OPTIMISTIC"),
+            IfaFlags::IFA_F_DADFAILED => write!(f, "IFA_F_DADFAILED"),
+            IfaFlags::IFA_F_HOMEADDRESS => write!(f, "IFA_F_HOMEADDRESS"),
+            IfaFlags::IFA_F_DEPRECATED => write!(f, "IFA_F_DEPRECATED"),
+            IfaFlags::IFA_F_TENTATIVE => write!(f, "IFA_F_TENTATIVE"),
+            IfaFlags::IFA_F_PERMANENT => write!(f, "IFA_F_PERMANENT"),
+            IfaFlags::IFA_F_MANAGETEMPADDR => write!(f, "IFA_F_MANAGETEMPADDR"),
+            IfaFlags::IFA_F_NOPREFIXROUTE => write!(f, "IFA_F_NOPREFIXROUTE"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for IfaFlags {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0x1 => Some(IfaFlags::IFA_F_SECONDARY),
+            0x2 => Some(IfaFlags::IFA_F_NODAD),
+            0x4 => Some(IfaFlags::IFA_F_OPTIMISTIC),
+            0x8 => Some(IfaFlags::IFA_F_DADFAILED),
+            0x10 => Some(IfaFlags::IFA_F_HOMEADDRESS),
+            0x20 => Some(IfaFlags::IFA_F_DEPRECATED),
+            0x40 => Some(IfaFlags::IFA_F_TENTATIVE),
+            0x80 => Some(IfaFlags::IFA_F_PERMANENT),
+            0x100 => Some(IfaFlags::IFA_F_MANAGETEMPADDR),
+            0x200 => Some(IfaFlags::IFA_F_NOPREFIXROUTE),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0x1 => Some(IfaFlags::IFA_F_SECONDARY),
+            0x2 => Some(IfaFlags::IFA_F_NODAD),
+            0x4 => Some(IfaFlags::IFA_F_OPTIMISTIC),
+            0x8 => Some(IfaFlags::IFA_F_DADFAILED),
+            0x10 => Some(IfaFlags::IFA_F_HOMEADDRESS),
+            0x20 => Some(IfaFlags::IFA_F_DEPRECATED),
+            0x40 => Some(IfaFlags::IFA_F_TENTATIVE),
+            0x80 => Some(IfaFlags::IFA_F_PERMANENT),
+            0x100 => Some(IfaFlags::IFA_F_MANAGETEMPADDR),
+            0x200 => Some(IfaFlags::IFA_F_NOPREFIXROUTE),
+            _ => None
+        }
+    }
+}
+// TODO: make this a macro
+impl IfaFlags {
+    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
+        let mut shift: u32 = 0;
+        let mut result: u32 = 1<<shift;
+        let mut found = false;
+        while result <= IfaFlags::IFA_F_NOPREFIXROUTE as u32 {
+            let tmp = result & flags;
+            if tmp > 0 {
+                if found {
+                    try!(write!(f, "|"));
+                }
+                let flag = IfaFlags::from_u32(tmp).unwrap();
+                try!(write!(f, "{}", flag));
+                found = true;
+            }
+
+            // keep looking
+            shift += 1;
+            result = 1<<shift;
+        }
+        write!(f, "")
     }
 }
 
@@ -785,8 +893,9 @@ impl Ifaddrmsg {
         try!(write!(f, "{{\n"));
         try!(write!(f, "{}    ifa_family: {},\n", indent, self.ifa_family));
         try!(write!(f, "{}    ifa_prefixlen: {},\n", indent, self.ifa_prefixlen));
-        try!(write!(f, "{}    ifa_flags: {:#X}\n", indent, self.ifa_flags));
-        try!(write!(f, "{}    ifa_scope: {},\n", indent, self.ifa_scope));
+        try!(write!(f, "{}    ifa_flags: {:#X} (", indent, self.ifa_flags));
+        try!(IfaFlags::pretty_fmt(f, self.ifa_flags as u32));
+        try!(write!(f, ")\n{}    ifa_scope: {},\n", indent, self.ifa_scope));
         try!(write!(f, "{}    ifa_index: {},\n", indent, self.ifa_index));
         write!(f, "{}}}", indent)
     }
