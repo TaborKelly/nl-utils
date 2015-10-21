@@ -10,6 +10,7 @@ use nl::{format_indent, NlMsg};
 // - attributes for all msg types
 // - better error handling (option vs Err)
 // - better attribute handling (struct rtnl_link_stats, etc)
+// move code around, especially generated code, to make things more readable
 
 // A macro for reading and returning None on error.
 // r = an expresssion that will return/evaluate to a Result
@@ -22,6 +23,40 @@ macro_rules! read_and_handle_error {
         }
         $s = tmp.unwrap();
     }}
+}
+
+// A macro to implement pretty_fmt() for an enum
+// $t - The enum type
+// $v - The largest value in the enum
+// $m - The method to call to get the flag from a u32
+// TODO: figure out how to eliminate $m and just use $t::from_u32().
+//       or possilby replace it with generated code
+macro_rules! impl_pretty_flag_fmt {
+    ($t:path, $v:path, $m:path) => {
+        impl $t {
+            fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
+                let mut shift: u32 = 0;
+                let mut result: u32 = 1<<shift;
+                let mut found = false;
+                while result <= $v as u32 {
+                    let tmp = result & flags;
+                    if tmp > 0 {
+                        if found {
+                            try!(write!(f, "|"));
+                        }
+                        let flag = $m(tmp).unwrap();
+                        try!(write!(f, "{}", flag));
+                        found = true;
+                    }
+
+                    // keep looking
+                    shift += 1;
+                    result = 1<<shift;
+                }
+                write!(f, "")
+            }
+        }
+    }
 }
 
 #[allow(dead_code, non_camel_case_types)]
@@ -153,29 +188,7 @@ impl ::num::traits::FromPrimitive for NetDeviceFlags {
         }
     }
 }
-impl NetDeviceFlags {
-    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
-        let mut shift: u32 = 0;
-        let mut result: u32 = 1<<shift;
-        let mut found = false;
-        while result <= NetDeviceFlags::IFF_ECHO as u32 {
-            let tmp = result & flags;
-            if tmp > 0 {
-                if found {
-                    try!(write!(f, "|"));
-                }
-                let flag = NetDeviceFlags::from_u32(tmp).unwrap();
-                try!(write!(f, "{}", flag));
-                found = true;
-            }
-
-            // keep looking
-            shift += 1;
-            result = 1<<shift;
-        }
-        write!(f, "")
-    }
-}
+impl_pretty_flag_fmt!(NetDeviceFlags, NetDeviceFlags::IFF_ECHO, NetDeviceFlags::from_u32);
 
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
@@ -840,30 +853,7 @@ impl ::num::traits::FromPrimitive for IfaFlags {
         }
     }
 }
-// TODO: make this a macro
-impl IfaFlags {
-    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
-        let mut shift: u32 = 0;
-        let mut result: u32 = 1<<shift;
-        let mut found = false;
-        while result <= IfaFlags::IFA_F_NOPREFIXROUTE as u32 {
-            let tmp = result & flags;
-            if tmp > 0 {
-                if found {
-                    try!(write!(f, "|"));
-                }
-                let flag = IfaFlags::from_u32(tmp).unwrap();
-                try!(write!(f, "{}", flag));
-                found = true;
-            }
-
-            // keep looking
-            shift += 1;
-            result = 1<<shift;
-        }
-        write!(f, "")
-    }
-}
+impl_pretty_flag_fmt!(IfaFlags, IfaFlags::IFA_F_NOPREFIXROUTE, IfaFlags::from_u32);
 
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
