@@ -998,6 +998,106 @@ impl ::std::fmt::Display for Ifaddrmsg {
     }
 }
 
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum Rtn {
+    RTN_UNSPEC = 0,
+    RTN_UNICAST = 1,
+    RTN_LOCAL = 2,
+    RTN_BROADCAST = 3,
+    RTN_ANYCAST = 4,
+    RTN_MULTICAST = 5,
+    RTN_BLACKHOLE = 6,
+    RTN_UNREACHABLE = 7,
+    RTN_PROHIBIT = 8,
+    RTN_THROW = 9,
+    RTN_NAT = 10,
+    RTN_XRESOLVE = 11,
+}
+impl ::std::str::FromStr for Rtn {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "RTN_UNSPEC" => Ok(Rtn::RTN_UNSPEC),
+            "RTN_UNICAST" => Ok(Rtn::RTN_UNICAST),
+            "RTN_LOCAL" => Ok(Rtn::RTN_LOCAL),
+            "RTN_BROADCAST" => Ok(Rtn::RTN_BROADCAST),
+            "RTN_ANYCAST" => Ok(Rtn::RTN_ANYCAST),
+            "RTN_MULTICAST" => Ok(Rtn::RTN_MULTICAST),
+            "RTN_BLACKHOLE" => Ok(Rtn::RTN_BLACKHOLE),
+            "RTN_UNREACHABLE" => Ok(Rtn::RTN_UNREACHABLE),
+            "RTN_PROHIBIT" => Ok(Rtn::RTN_PROHIBIT),
+            "RTN_THROW" => Ok(Rtn::RTN_THROW),
+            "RTN_NAT" => Ok(Rtn::RTN_NAT),
+            "RTN_XRESOLVE" => Ok(Rtn::RTN_XRESOLVE),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for Rtn {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            Rtn::RTN_UNSPEC => write!(f, "RTN_UNSPEC"),
+            Rtn::RTN_UNICAST => write!(f, "RTN_UNICAST"),
+            Rtn::RTN_LOCAL => write!(f, "RTN_LOCAL"),
+            Rtn::RTN_BROADCAST => write!(f, "RTN_BROADCAST"),
+            Rtn::RTN_ANYCAST => write!(f, "RTN_ANYCAST"),
+            Rtn::RTN_MULTICAST => write!(f, "RTN_MULTICAST"),
+            Rtn::RTN_BLACKHOLE => write!(f, "RTN_BLACKHOLE"),
+            Rtn::RTN_UNREACHABLE => write!(f, "RTN_UNREACHABLE"),
+            Rtn::RTN_PROHIBIT => write!(f, "RTN_PROHIBIT"),
+            Rtn::RTN_THROW => write!(f, "RTN_THROW"),
+            Rtn::RTN_NAT => write!(f, "RTN_NAT"),
+            Rtn::RTN_XRESOLVE => write!(f, "RTN_XRESOLVE"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for Rtn {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(Rtn::RTN_UNSPEC),
+            1 => Some(Rtn::RTN_UNICAST),
+            2 => Some(Rtn::RTN_LOCAL),
+            3 => Some(Rtn::RTN_BROADCAST),
+            4 => Some(Rtn::RTN_ANYCAST),
+            5 => Some(Rtn::RTN_MULTICAST),
+            6 => Some(Rtn::RTN_BLACKHOLE),
+            7 => Some(Rtn::RTN_UNREACHABLE),
+            8 => Some(Rtn::RTN_PROHIBIT),
+            9 => Some(Rtn::RTN_THROW),
+            10 => Some(Rtn::RTN_NAT),
+            11 => Some(Rtn::RTN_XRESOLVE),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(Rtn::RTN_UNSPEC),
+            1 => Some(Rtn::RTN_UNICAST),
+            2 => Some(Rtn::RTN_LOCAL),
+            3 => Some(Rtn::RTN_BROADCAST),
+            4 => Some(Rtn::RTN_ANYCAST),
+            5 => Some(Rtn::RTN_MULTICAST),
+            6 => Some(Rtn::RTN_BLACKHOLE),
+            7 => Some(Rtn::RTN_UNREACHABLE),
+            8 => Some(Rtn::RTN_PROHIBIT),
+            9 => Some(Rtn::RTN_THROW),
+            10 => Some(Rtn::RTN_NAT),
+            11 => Some(Rtn::RTN_XRESOLVE),
+            _ => None
+        }
+    }
+}
+impl Default for Rtn {
+    fn default() -> Rtn {
+        Rtn::RTN_UNSPEC
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Rtmsg {
     pub rtm_family: AddressFamily, // Address family of route
@@ -1008,7 +1108,7 @@ pub struct Rtmsg {
     pub rtm_table: u8, // Routing table ID
     pub rtm_protocol: u8, // Routing protocol
     pub rtm_scope: u8,
-    pub rtm_type: u8,
+    pub rtm_type: Rtn,
 
     pub rtm_flags: u32,
 }
@@ -1027,7 +1127,9 @@ impl Rtmsg {
         read_and_handle_error!(s.rtm_table, cursor.read_u8());
         read_and_handle_error!(s.rtm_protocol, cursor.read_u8());
         read_and_handle_error!(s.rtm_scope, cursor.read_u8());
-        read_and_handle_error!(s.rtm_type, cursor.read_u8());
+        let rtm_type: u8;
+        read_and_handle_error!(rtm_type, cursor.read_u8());
+        s.rtm_type = Rtn::from_u8(rtm_type).unwrap();
 
         read_and_handle_error!(s.rtm_flags, cursor.read_u32::<NativeEndian>());
 
