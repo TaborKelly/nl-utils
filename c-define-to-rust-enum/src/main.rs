@@ -84,11 +84,17 @@ fn print_usage(program: &str, opts: Options) {
 fn get_num(s: &str) -> i32 {
     use std::str::FromStr;
     use regex::Regex;
-    let re_int = Regex::new(r"^([:digit:]+)$").unwrap();
+    let re_int = Regex::new(r"^(0x)?([:digit:]+)$").unwrap();
     let re_shift = Regex::new(r"^([:digit:]+)[:space:]*<<[:space:]*([:digit:]+)$").unwrap();
 
     if (re_int.is_match(s)) {
-        FromStr::from_str(s).unwrap()
+        let caps = re_int.captures(s).unwrap();
+        let radix: u32 = match caps.at(1) {
+            Some(_) => 16,
+            None => 10,
+        };
+        let digits = caps.at(2).unwrap();
+        i32::from_str_radix(digits, radix).unwrap()
     }
     else if (re_shift.is_match(s)) {
         let caps = re_shift.captures(s).unwrap();
@@ -107,7 +113,7 @@ fn parse_buff<T: BufRead>(read: T, parse_enum: bool) -> Vec<CEnum> {
     use regex::Regex;
     let re = match parse_enum {
         true => Regex::new(r"^[:space:]*([:graph:]+)([:space:]*=[:space:]*([:graph:]+))?[:space:]*,").unwrap(),
-        false => Regex::new(r"^#define[:space:]+([:graph:]+)[:space:]+([:digit:]+)").unwrap(),
+        false => Regex::new(r"^#define[:space:]+([:graph:]+)[:space:]+([:graph:]+)").unwrap(),
     };
     let mut v: Vec<CEnum> = Vec::new();
 
