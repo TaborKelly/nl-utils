@@ -11,6 +11,7 @@ use nl::{format_indent, NlMsg};
 // - better error handling (option vs Err)
 // - better attribute handling (struct rtnl_link_stats, etc)
 // move code around, especially generated code, to make things more readable
+// More robustness for Rtprot? Theoretically users could use other values.
 
 // A macro for reading and returning None on error.
 // r = an expresssion that will return/evaluate to a Result
@@ -1218,6 +1219,75 @@ impl Default for Rtprot {
     }
 }
 
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum RtScope {
+    RT_SCOPE_UNIVERSE = 0,
+    RT_SCOPE_SITE = 200,
+    RT_SCOPE_LINK = 253,
+    RT_SCOPE_HOST = 254,
+}
+impl ::std::str::FromStr for RtScope {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "RT_SCOPE_UNIVERSE" => Ok(RtScope::RT_SCOPE_UNIVERSE),
+            "RT_SCOPE_SITE" => Ok(RtScope::RT_SCOPE_SITE),
+            "RT_SCOPE_LINK" => Ok(RtScope::RT_SCOPE_LINK),
+            "RT_SCOPE_HOST" => Ok(RtScope::RT_SCOPE_HOST),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for RtScope {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            RtScope::RT_SCOPE_UNIVERSE => write!(f, "RT_SCOPE_UNIVERSE"),
+            RtScope::RT_SCOPE_SITE => write!(f, "RT_SCOPE_SITE"),
+            RtScope::RT_SCOPE_LINK => write!(f, "RT_SCOPE_LINK"),
+            RtScope::RT_SCOPE_HOST => write!(f, "RT_SCOPE_HOST"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for RtScope {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(RtScope::RT_SCOPE_UNIVERSE),
+            200 => Some(RtScope::RT_SCOPE_SITE),
+            253 => Some(RtScope::RT_SCOPE_LINK),
+            254 => Some(RtScope::RT_SCOPE_HOST),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(RtScope::RT_SCOPE_UNIVERSE),
+            200 => Some(RtScope::RT_SCOPE_SITE),
+            253 => Some(RtScope::RT_SCOPE_LINK),
+            254 => Some(RtScope::RT_SCOPE_HOST),
+            _ => None
+        }
+    }
+}
+impl Default for RtScope {
+    fn default() -> RtScope {
+        RtScope::RT_SCOPE_UNIVERSE
+    }
+}
+impl RtScope {
+    fn pretty_fmt(f: &mut ::std::fmt::Formatter, num: u8) -> ::std::fmt::Result {
+        let option = RtScope::from_u8(num);
+        match option {
+            Some(e) => write!(f, "{}", e),
+            None => write!(f, "user defined"),
+        }
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Rtmsg {
     pub rtm_family: AddressFamily, // Address family of route
@@ -1266,8 +1336,9 @@ impl Rtmsg {
         try!(write!(f, "{}    rtm_tos: {},\n", indent, self.rtm_tos));
         try!(write!(f, "{}    rtm_table: {},\n", indent, self.rtm_table));
         try!(write!(f, "{}    rtm_protocol: {},\n", indent, self.rtm_protocol));
-        try!(write!(f, "{}    rtm_scope: {},\n", indent, self.rtm_scope));
-        try!(write!(f, "{}    rtm_type: {},\n", indent, self.rtm_type));
+        try!(write!(f, "{}    rtm_scope: {} (", indent, self.rtm_scope));
+        try!(RtScope::pretty_fmt(f, self.rtm_scope));
+        try!(write!(f, ")\n{}    rtm_type: {},\n", indent, self.rtm_type));
         try!(write!(f, "{}    rtm_flags: {:#X}\n", indent, self.rtm_flags));
         write!(f, "{}}}", indent)
     }
