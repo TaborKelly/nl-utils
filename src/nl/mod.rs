@@ -198,7 +198,7 @@ impl NlMsgEnum {
                 else if *u == rtnetlink::NrMsgType::RTM_NEWADDR ||
                    *u == rtnetlink::NrMsgType::RTM_DELADDR ||
                    *u == rtnetlink::NrMsgType::RTM_GETADDR {
-                    let o = rtnetlink::Ifaddrmsg::read(cursor);
+                    let o = rtnetlink::Ifaddrmsg::read(cursor, nlmsg_len);
                     match o {
                         Some(msg) => NlMsgEnum::Ifaddrmsg(msg),
                         None => NlMsgEnum::MalfromedPacket

@@ -865,17 +865,103 @@ impl IfaFlags {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum Ifa {
+    IFA_UNSPEC = 0,
+    IFA_ADDRESS = 1,
+    IFA_LOCAL = 2,
+    IFA_LABEL = 3,
+    IFA_BROADCAST = 4,
+    IFA_ANYCAST = 5,
+    IFA_CACHEINFO = 6,
+    IFA_MULTICAST = 7,
+    IFA_FLAGS = 8,
+}
+impl ::std::str::FromStr for Ifa {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "IFA_UNSPEC" => Ok(Ifa::IFA_UNSPEC),
+            "IFA_ADDRESS" => Ok(Ifa::IFA_ADDRESS),
+            "IFA_LOCAL" => Ok(Ifa::IFA_LOCAL),
+            "IFA_LABEL" => Ok(Ifa::IFA_LABEL),
+            "IFA_BROADCAST" => Ok(Ifa::IFA_BROADCAST),
+            "IFA_ANYCAST" => Ok(Ifa::IFA_ANYCAST),
+            "IFA_CACHEINFO" => Ok(Ifa::IFA_CACHEINFO),
+            "IFA_MULTICAST" => Ok(Ifa::IFA_MULTICAST),
+            "IFA_FLAGS" => Ok(Ifa::IFA_FLAGS),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for Ifa {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            Ifa::IFA_UNSPEC => write!(f, "IFA_UNSPEC"),
+            Ifa::IFA_ADDRESS => write!(f, "IFA_ADDRESS"),
+            Ifa::IFA_LOCAL => write!(f, "IFA_LOCAL"),
+            Ifa::IFA_LABEL => write!(f, "IFA_LABEL"),
+            Ifa::IFA_BROADCAST => write!(f, "IFA_BROADCAST"),
+            Ifa::IFA_ANYCAST => write!(f, "IFA_ANYCAST"),
+            Ifa::IFA_CACHEINFO => write!(f, "IFA_CACHEINFO"),
+            Ifa::IFA_MULTICAST => write!(f, "IFA_MULTICAST"),
+            Ifa::IFA_FLAGS => write!(f, "IFA_FLAGS"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for Ifa {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(Ifa::IFA_UNSPEC),
+            1 => Some(Ifa::IFA_ADDRESS),
+            2 => Some(Ifa::IFA_LOCAL),
+            3 => Some(Ifa::IFA_LABEL),
+            4 => Some(Ifa::IFA_BROADCAST),
+            5 => Some(Ifa::IFA_ANYCAST),
+            6 => Some(Ifa::IFA_CACHEINFO),
+            7 => Some(Ifa::IFA_MULTICAST),
+            8 => Some(Ifa::IFA_FLAGS),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(Ifa::IFA_UNSPEC),
+            1 => Some(Ifa::IFA_ADDRESS),
+            2 => Some(Ifa::IFA_LOCAL),
+            3 => Some(Ifa::IFA_LABEL),
+            4 => Some(Ifa::IFA_BROADCAST),
+            5 => Some(Ifa::IFA_ANYCAST),
+            6 => Some(Ifa::IFA_CACHEINFO),
+            7 => Some(Ifa::IFA_MULTICAST),
+            8 => Some(Ifa::IFA_FLAGS),
+            _ => None
+        }
+    }
+}
+impl Default for Ifa {
+    fn default() -> Ifa {
+        Ifa::IFA_UNSPEC
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Ifaddrmsg {
     pub ifa_family: AddressFamily, // Address type
     pub ifa_prefixlen: u8, // Prefixlength of address
     pub ifa_flags: u8, // Address flags
     pub ifa_scope: u8, // Address scope
     pub ifa_index: u32, // Interface index
+    pub ifa_attr: Vec<Rtattr<Ifa>>,
 }
 impl Ifaddrmsg {
     // Ifaddrmsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ifaddrmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Ifaddrmsg> {
         let mut s = Ifaddrmsg::default();
 
         let family: u8;
@@ -885,19 +971,34 @@ impl Ifaddrmsg {
         read_and_handle_error!(s.ifa_flags, cursor.read_u8());
         read_and_handle_error!(s.ifa_scope, cursor.read_u8());
         read_and_handle_error!(s.ifa_index, cursor.read_u32::<NativeEndian>());
+        while (cursor.position() as usize) < nlmsg_len {
+            let attr = Rtattr::<Ifa>::read(cursor).unwrap();
+            s.ifa_attr.push(attr);
+        }
 
         Some(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
-        let indent = format_indent(indent);
+        let i_s = format_indent(indent);
+        let i_s_p = format_indent(indent+1);
         try!(write!(f, "{{\n"));
-        try!(write!(f, "{}    ifa_family: {},\n", indent, self.ifa_family));
-        try!(write!(f, "{}    ifa_prefixlen: {},\n", indent, self.ifa_prefixlen));
-        try!(write!(f, "{}    ifa_flags: {:#X} (", indent, self.ifa_flags));
+        try!(write!(f, "{}    ifa_family: {},\n", i_s, self.ifa_family));
+        try!(write!(f, "{}    ifa_prefixlen: {},\n", i_s, self.ifa_prefixlen));
+        try!(write!(f, "{}    ifa_flags: {:#X} (", i_s, self.ifa_flags));
         try!(IfaFlags::pretty_fmt(f, self.ifa_flags as u32));
-        try!(write!(f, ")\n{}    ifa_scope: {},\n", indent, self.ifa_scope));
-        try!(write!(f, "{}    ifa_index: {},\n", indent, self.ifa_index));
-        write!(f, "{}}}", indent)
+        try!(write!(f, ")\n{}    ifa_scope: {},\n", i_s, self.ifa_scope));
+        try!(write!(f, "{}    ifa_index: {},\n", i_s, self.ifa_index));
+        try!(write!(f, "{}    ifa_attr: [ ", i_s));
+
+        let mut count: usize = 1;
+        for a in self.ifa_attr.iter() {
+            try!(a.pretty_fmt(f, indent+1));
+            if count < self.ifa_attr.len() {
+                try!(write!(f, ",\n{}", i_s_p));
+            }
+            count = count + 1;
+        }
+        write!(f, " ],\n{}}}", i_s)
     }
 }
 impl ::std::fmt::Display for Ifaddrmsg {
