@@ -113,7 +113,7 @@ fn parse_buff<T: BufRead>(read: T, parse_enum: bool) -> Vec<CEnum> {
     use std::str::FromStr;
     use regex::Regex;
     let re = match parse_enum {
-        true => Regex::new(r"^[:space:]*([a-zA-Z0-9\x2D\x5F]+)([:space:]*=[:space:]*([:graph:]+))?[:space:]*,").unwrap(),
+        true => Regex::new(r"^[:space:]*([[:alnum:]_]+)([:space:]*=[:space:]*([:graph:]+))?[:space:]*,").unwrap(),
         false => Regex::new(r"^#define[:space:]+([:graph:]+)[:space:]+([:graph:]+)").unwrap(),
     };
     let mut v: Vec<CEnum> = Vec::new();
