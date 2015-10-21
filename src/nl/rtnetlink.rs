@@ -1288,6 +1288,80 @@ impl RtScope {
     }
 }
 
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum RtTable {
+    RT_TABLE_UNSPEC = 0,
+    RT_TABLE_COMPAT = 252,
+    RT_TABLE_DEFAULT = 253,
+    RT_TABLE_MAIN = 254,
+    RT_TABLE_LOCAL = 255,
+}
+impl ::std::str::FromStr for RtTable {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "RT_TABLE_UNSPEC" => Ok(RtTable::RT_TABLE_UNSPEC),
+            "RT_TABLE_COMPAT" => Ok(RtTable::RT_TABLE_COMPAT),
+            "RT_TABLE_DEFAULT" => Ok(RtTable::RT_TABLE_DEFAULT),
+            "RT_TABLE_MAIN" => Ok(RtTable::RT_TABLE_MAIN),
+            "RT_TABLE_LOCAL" => Ok(RtTable::RT_TABLE_LOCAL),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for RtTable {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            RtTable::RT_TABLE_UNSPEC => write!(f, "RT_TABLE_UNSPEC"),
+            RtTable::RT_TABLE_COMPAT => write!(f, "RT_TABLE_COMPAT"),
+            RtTable::RT_TABLE_DEFAULT => write!(f, "RT_TABLE_DEFAULT"),
+            RtTable::RT_TABLE_MAIN => write!(f, "RT_TABLE_MAIN"),
+            RtTable::RT_TABLE_LOCAL => write!(f, "RT_TABLE_LOCAL"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for RtTable {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(RtTable::RT_TABLE_UNSPEC),
+            252 => Some(RtTable::RT_TABLE_COMPAT),
+            253 => Some(RtTable::RT_TABLE_DEFAULT),
+            254 => Some(RtTable::RT_TABLE_MAIN),
+            255 => Some(RtTable::RT_TABLE_LOCAL),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(RtTable::RT_TABLE_UNSPEC),
+            252 => Some(RtTable::RT_TABLE_COMPAT),
+            253 => Some(RtTable::RT_TABLE_DEFAULT),
+            254 => Some(RtTable::RT_TABLE_MAIN),
+            255 => Some(RtTable::RT_TABLE_LOCAL),
+            _ => None
+        }
+    }
+}
+impl Default for RtTable {
+    fn default() -> RtTable {
+        RtTable::RT_TABLE_UNSPEC
+    }
+}
+impl RtTable {
+    fn pretty_fmt(f: &mut ::std::fmt::Formatter, num: u8) -> ::std::fmt::Result {
+        let option = RtTable::from_u8(num);
+        match option {
+            Some(e) => write!(f, "{}", e),
+            None => write!(f, "user defined"),
+        }
+    }
+}
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Rtmsg {
     pub rtm_family: AddressFamily, // Address family of route
@@ -1334,11 +1408,12 @@ impl Rtmsg {
         try!(write!(f, "{}    rtm_dst_len: {},\n", indent, self.rtm_dst_len));
         try!(write!(f, "{}    rtm_src_len: {}\n", indent, self.rtm_src_len));
         try!(write!(f, "{}    rtm_tos: {},\n", indent, self.rtm_tos));
-        try!(write!(f, "{}    rtm_table: {},\n", indent, self.rtm_table));
-        try!(write!(f, "{}    rtm_protocol: {},\n", indent, self.rtm_protocol));
+        try!(write!(f, "{}    rtm_table: {} (", indent, self.rtm_table));
+        try!(RtTable::pretty_fmt(f, self.rtm_table));
+        try!(write!(f, "),\n{}    rtm_protocol: {},\n", indent, self.rtm_protocol));
         try!(write!(f, "{}    rtm_scope: {} (", indent, self.rtm_scope));
         try!(RtScope::pretty_fmt(f, self.rtm_scope));
-        try!(write!(f, ")\n{}    rtm_type: {},\n", indent, self.rtm_type));
+        try!(write!(f, "),\n{}    rtm_type: {},\n", indent, self.rtm_type));
         try!(write!(f, "{}    rtm_flags: {:#X}\n", indent, self.rtm_flags));
         write!(f, "{}}}", indent)
     }
