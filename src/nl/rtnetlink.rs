@@ -9,6 +9,7 @@ use nl::{format_indent, NlMsg};
 // - family for all msg types
 // - attributes for all msg types
 // - better error handling (option vs Err)
+// - better attribute handling (struct rtnl_link_stats, etc)
 
 // A macro for reading and returning None on error.
 // r = an expresssion that will return/evaluate to a Result
@@ -22,13 +23,6 @@ macro_rules! read_and_handle_error {
         $s = tmp.unwrap();
     }}
 }
-
-/* TODO: attributes
-#[derive(Debug, Default, Copy, Clone)]
-struct Rtattr {
-    rta_len: u16,
-    rta_type: u16,
-} */
 
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -765,7 +759,7 @@ impl ::std::fmt::Display for Ifinfomsg {
 
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Ifaddrmsg {
-    pub ifa_family: u8, // Address type
+    pub ifa_family: AddressFamily, // Address type
     pub ifa_prefixlen: u8, // Prefixlength of address
     pub ifa_flags: u8, // Address flags
     pub ifa_scope: u8, // Address scope
@@ -776,7 +770,9 @@ impl Ifaddrmsg {
     pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ifaddrmsg> {
         let mut s = Ifaddrmsg::default();
 
-        read_and_handle_error!(s.ifa_family, cursor.read_u8());
+        let family: u8;
+        read_and_handle_error!(family, cursor.read_u8());
+        s.ifa_family = AddressFamily::from_u8(family).unwrap();
         read_and_handle_error!(s.ifa_prefixlen, cursor.read_u8());
         read_and_handle_error!(s.ifa_flags, cursor.read_u8());
         read_and_handle_error!(s.ifa_scope, cursor.read_u8());
