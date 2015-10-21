@@ -1362,7 +1362,137 @@ impl RtTable {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum RtmAttr {
+    RTA_UNSPEC = 0,
+    RTA_DST = 1,
+    RTA_SRC = 2,
+    RTA_IIF = 3,
+    RTA_OIF = 4,
+    RTA_GATEWAY = 5,
+    RTA_PRIORITY = 6,
+    RTA_PREFSRC = 7,
+    RTA_METRICS = 8,
+    RTA_MULTIPATH = 9,
+    RTA_PROTOINFO = 10,
+    RTA_FLOW = 11,
+    RTA_CACHEINFO = 12,
+    RTA_SESSION = 13,
+    RTA_MP_ALGO = 14,
+    RTA_TABLE = 15,
+    RTA_MARK = 16,
+    RTA_MFC_STATS = 17,
+}
+impl ::std::str::FromStr for RtmAttr {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "RTA_UNSPEC" => Ok(RtmAttr::RTA_UNSPEC),
+            "RTA_DST" => Ok(RtmAttr::RTA_DST),
+            "RTA_SRC" => Ok(RtmAttr::RTA_SRC),
+            "RTA_IIF" => Ok(RtmAttr::RTA_IIF),
+            "RTA_OIF" => Ok(RtmAttr::RTA_OIF),
+            "RTA_GATEWAY" => Ok(RtmAttr::RTA_GATEWAY),
+            "RTA_PRIORITY" => Ok(RtmAttr::RTA_PRIORITY),
+            "RTA_PREFSRC" => Ok(RtmAttr::RTA_PREFSRC),
+            "RTA_METRICS" => Ok(RtmAttr::RTA_METRICS),
+            "RTA_MULTIPATH" => Ok(RtmAttr::RTA_MULTIPATH),
+            "RTA_PROTOINFO" => Ok(RtmAttr::RTA_PROTOINFO),
+            "RTA_FLOW" => Ok(RtmAttr::RTA_FLOW),
+            "RTA_CACHEINFO" => Ok(RtmAttr::RTA_CACHEINFO),
+            "RTA_SESSION" => Ok(RtmAttr::RTA_SESSION),
+            "RTA_MP_ALGO" => Ok(RtmAttr::RTA_MP_ALGO),
+            "RTA_TABLE" => Ok(RtmAttr::RTA_TABLE),
+            "RTA_MARK" => Ok(RtmAttr::RTA_MARK),
+            "RTA_MFC_STATS" => Ok(RtmAttr::RTA_MFC_STATS),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for RtmAttr {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            RtmAttr::RTA_UNSPEC => write!(f, "RTA_UNSPEC"),
+            RtmAttr::RTA_DST => write!(f, "RTA_DST"),
+            RtmAttr::RTA_SRC => write!(f, "RTA_SRC"),
+            RtmAttr::RTA_IIF => write!(f, "RTA_IIF"),
+            RtmAttr::RTA_OIF => write!(f, "RTA_OIF"),
+            RtmAttr::RTA_GATEWAY => write!(f, "RTA_GATEWAY"),
+            RtmAttr::RTA_PRIORITY => write!(f, "RTA_PRIORITY"),
+            RtmAttr::RTA_PREFSRC => write!(f, "RTA_PREFSRC"),
+            RtmAttr::RTA_METRICS => write!(f, "RTA_METRICS"),
+            RtmAttr::RTA_MULTIPATH => write!(f, "RTA_MULTIPATH"),
+            RtmAttr::RTA_PROTOINFO => write!(f, "RTA_PROTOINFO"),
+            RtmAttr::RTA_FLOW => write!(f, "RTA_FLOW"),
+            RtmAttr::RTA_CACHEINFO => write!(f, "RTA_CACHEINFO"),
+            RtmAttr::RTA_SESSION => write!(f, "RTA_SESSION"),
+            RtmAttr::RTA_MP_ALGO => write!(f, "RTA_MP_ALGO"),
+            RtmAttr::RTA_TABLE => write!(f, "RTA_TABLE"),
+            RtmAttr::RTA_MARK => write!(f, "RTA_MARK"),
+            RtmAttr::RTA_MFC_STATS => write!(f, "RTA_MFC_STATS"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for RtmAttr {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(RtmAttr::RTA_UNSPEC),
+            1 => Some(RtmAttr::RTA_DST),
+            2 => Some(RtmAttr::RTA_SRC),
+            3 => Some(RtmAttr::RTA_IIF),
+            4 => Some(RtmAttr::RTA_OIF),
+            5 => Some(RtmAttr::RTA_GATEWAY),
+            6 => Some(RtmAttr::RTA_PRIORITY),
+            7 => Some(RtmAttr::RTA_PREFSRC),
+            8 => Some(RtmAttr::RTA_METRICS),
+            9 => Some(RtmAttr::RTA_MULTIPATH),
+            10 => Some(RtmAttr::RTA_PROTOINFO),
+            11 => Some(RtmAttr::RTA_FLOW),
+            12 => Some(RtmAttr::RTA_CACHEINFO),
+            13 => Some(RtmAttr::RTA_SESSION),
+            14 => Some(RtmAttr::RTA_MP_ALGO),
+            15 => Some(RtmAttr::RTA_TABLE),
+            16 => Some(RtmAttr::RTA_MARK),
+            17 => Some(RtmAttr::RTA_MFC_STATS),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(RtmAttr::RTA_UNSPEC),
+            1 => Some(RtmAttr::RTA_DST),
+            2 => Some(RtmAttr::RTA_SRC),
+            3 => Some(RtmAttr::RTA_IIF),
+            4 => Some(RtmAttr::RTA_OIF),
+            5 => Some(RtmAttr::RTA_GATEWAY),
+            6 => Some(RtmAttr::RTA_PRIORITY),
+            7 => Some(RtmAttr::RTA_PREFSRC),
+            8 => Some(RtmAttr::RTA_METRICS),
+            9 => Some(RtmAttr::RTA_MULTIPATH),
+            10 => Some(RtmAttr::RTA_PROTOINFO),
+            11 => Some(RtmAttr::RTA_FLOW),
+            12 => Some(RtmAttr::RTA_CACHEINFO),
+            13 => Some(RtmAttr::RTA_SESSION),
+            14 => Some(RtmAttr::RTA_MP_ALGO),
+            15 => Some(RtmAttr::RTA_TABLE),
+            16 => Some(RtmAttr::RTA_MARK),
+            17 => Some(RtmAttr::RTA_MFC_STATS),
+            _ => None
+        }
+    }
+}
+impl Default for RtmAttr {
+    fn default() -> RtmAttr {
+        RtmAttr::RTA_UNSPEC
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Rtmsg {
     pub rtm_family: AddressFamily, // Address family of route
     pub rtm_dst_len: u8, // Length of destination
@@ -1375,10 +1505,11 @@ pub struct Rtmsg {
     pub rtm_type: Rtn,
 
     pub rtm_flags: u32,
+    pub rtm_attr: Vec<Rtattr<RtmAttr>>,
 }
 impl Rtmsg {
     // Ifaddrmsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Rtmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Rtmsg> {
         let mut s = Rtmsg::default();
 
         let family: u8;
@@ -1399,23 +1530,39 @@ impl Rtmsg {
 
         read_and_handle_error!(s.rtm_flags, cursor.read_u32::<NativeEndian>());
 
+        while (cursor.position() as usize) < nlmsg_len {
+            let attr = Rtattr::<RtmAttr>::read(cursor).unwrap();
+            s.rtm_attr.push(attr);
+        }
+
         Some(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
-        let indent = format_indent(indent);
+        let i_s = format_indent(indent);
+        let i_s_p = format_indent(indent+1);
         try!(write!(f, "{{\n"));
-        try!(write!(f, "{}    rtm_family: {},\n", indent, self.rtm_family));
-        try!(write!(f, "{}    rtm_dst_len: {},\n", indent, self.rtm_dst_len));
-        try!(write!(f, "{}    rtm_src_len: {}\n", indent, self.rtm_src_len));
-        try!(write!(f, "{}    rtm_tos: {},\n", indent, self.rtm_tos));
-        try!(write!(f, "{}    rtm_table: {} (", indent, self.rtm_table));
+        try!(write!(f, "{}    rtm_family: {},\n", i_s, self.rtm_family));
+        try!(write!(f, "{}    rtm_dst_len: {},\n", i_s, self.rtm_dst_len));
+        try!(write!(f, "{}    rtm_src_len: {}\n", i_s, self.rtm_src_len));
+        try!(write!(f, "{}    rtm_tos: {},\n", i_s, self.rtm_tos));
+        try!(write!(f, "{}    rtm_table: {} (", i_s, self.rtm_table));
         try!(RtTable::pretty_fmt(f, self.rtm_table));
-        try!(write!(f, "),\n{}    rtm_protocol: {},\n", indent, self.rtm_protocol));
-        try!(write!(f, "{}    rtm_scope: {} (", indent, self.rtm_scope));
+        try!(write!(f, "),\n{}    rtm_protocol: {},\n", i_s, self.rtm_protocol));
+        try!(write!(f, "{}    rtm_scope: {} (", i_s, self.rtm_scope));
         try!(RtScope::pretty_fmt(f, self.rtm_scope));
-        try!(write!(f, "),\n{}    rtm_type: {},\n", indent, self.rtm_type));
-        try!(write!(f, "{}    rtm_flags: {:#X}\n", indent, self.rtm_flags));
-        write!(f, "{}}}", indent)
+        try!(write!(f, "),\n{}    rtm_type: {},\n", i_s, self.rtm_type));
+        try!(write!(f, "{}    rtm_flags: {:#X}\n", i_s, self.rtm_flags));
+
+        try!(write!(f, "{}    rtm_attr: [ ", i_s));
+        let mut count: usize = 1;
+        for a in self.rtm_attr.iter() {
+            try!(a.pretty_fmt(f, indent+1));
+            if count < self.rtm_attr.len() {
+                try!(write!(f, ",\n{}", i_s_p));
+            }
+            count = count + 1;
+        }
+        write!(f, " ],\n{}}}", i_s)
     }
 }
 impl ::std::fmt::Display for Rtmsg {
