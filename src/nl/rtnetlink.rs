@@ -1363,6 +1363,61 @@ impl RtTable {
 }
 
 #[allow(dead_code, non_camel_case_types)]
+pub enum RtmFlags {
+    RTM_F_NOTIFY = 0x100,
+    RTM_F_CLONED = 0x200,
+    RTM_F_EQUALIZE = 0x400,
+    RTM_F_PREFIX = 0x800,
+}
+impl ::std::str::FromStr for RtmFlags {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "RTM_F_NOTIFY" => Ok(RtmFlags::RTM_F_NOTIFY),
+            "RTM_F_CLONED" => Ok(RtmFlags::RTM_F_CLONED),
+            "RTM_F_EQUALIZE" => Ok(RtmFlags::RTM_F_EQUALIZE),
+            "RTM_F_PREFIX" => Ok(RtmFlags::RTM_F_PREFIX),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for RtmFlags {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            RtmFlags::RTM_F_NOTIFY => write!(f, "RTM_F_NOTIFY"),
+            RtmFlags::RTM_F_CLONED => write!(f, "RTM_F_CLONED"),
+            RtmFlags::RTM_F_EQUALIZE => write!(f, "RTM_F_EQUALIZE"),
+            RtmFlags::RTM_F_PREFIX => write!(f, "RTM_F_PREFIX"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for RtmFlags {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0x100 => Some(RtmFlags::RTM_F_NOTIFY),
+            0x200 => Some(RtmFlags::RTM_F_CLONED),
+            0x400 => Some(RtmFlags::RTM_F_EQUALIZE),
+            0x800 => Some(RtmFlags::RTM_F_PREFIX),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0x100 => Some(RtmFlags::RTM_F_NOTIFY),
+            0x200 => Some(RtmFlags::RTM_F_CLONED),
+            0x400 => Some(RtmFlags::RTM_F_EQUALIZE),
+            0x800 => Some(RtmFlags::RTM_F_PREFIX),
+            _ => None
+        }
+    }
+}
+impl_pretty_flag_fmt!(RtmFlags, RtmFlags::RTM_F_PREFIX, RtmFlags::from_u32);
+
+#[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
 pub enum RtmAttr {
     RTA_UNSPEC = 0,
@@ -1551,9 +1606,10 @@ impl Rtmsg {
         try!(write!(f, "{}    rtm_scope: {} (", i_s, self.rtm_scope));
         try!(RtScope::pretty_fmt(f, self.rtm_scope));
         try!(write!(f, "),\n{}    rtm_type: {},\n", i_s, self.rtm_type));
-        try!(write!(f, "{}    rtm_flags: {:#X}\n", i_s, self.rtm_flags));
 
-        try!(write!(f, "{}    rtm_attr: [ ", i_s));
+        try!(write!(f, "{}    rtm_flags: {:#X} (", i_s, self.rtm_flags));
+        try!(RtmFlags::pretty_fmt(f, self.rtm_flags as u32));
+        try!(write!(f, ")\n{}    rtm_attr: [ ", i_s));
         let mut count: usize = 1;
         for a in self.rtm_attr.iter() {
             try!(a.pretty_fmt(f, indent+1));
