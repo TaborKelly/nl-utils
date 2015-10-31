@@ -6,8 +6,8 @@ pub mod netlink;
 pub mod rtnetlink;
 
 /* TODO:
+ - nlmsg_flags
  - attributes
- - nda_cacheinfo
  - multiple message bodies per packet
  - ',' consistency in output
 */

@@ -1629,13 +1629,49 @@ impl ::std::fmt::Display for Rtmsg {
 }
 
 #[derive(Debug, Default, Copy, Clone)]
+pub struct NdaCacheinfo {
+    pub ndm_confirmed: u32,
+    pub ndm_used: u32,
+    pub ndm_updated: u32,
+    pub ndm_flags: u32,
+}
+impl NdaCacheinfo {
+    // Ifinfomsg header is native endian
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<NdaCacheinfo> {
+        let mut s = NdaCacheinfo::default();
+
+        read_and_handle_error!(s.ndm_confirmed, cursor.read_u32::<NativeEndian>());
+        read_and_handle_error!(s.ndm_used, cursor.read_u32::<NativeEndian>());
+        read_and_handle_error!(s.ndm_updated, cursor.read_u32::<NativeEndian>());
+        read_and_handle_error!(s.ndm_flags, cursor.read_u32::<NativeEndian>());
+
+        Some(s)
+    }
+    pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
+        let indent = format_indent(indent);
+        try!(write!(f, "{{\n"));
+        try!(write!(f, "{}    ndm_confirmed: {},\n", indent, self.ndm_confirmed));
+        try!(write!(f, "{}    ndm_used: {},\n", indent, self.ndm_used));
+        try!(write!(f, "{}    ndm_updated: {:#X}\n", indent, self.ndm_updated));
+        try!(write!(f, "{}    ndm_flags: {:#X}\n", indent, self.ndm_flags));
+        write!(f, "{}}}", indent)
+    }
+}
+impl ::std::fmt::Display for NdaCacheinfo {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        self.pretty_fmt(f, 0)
+    }
+}
+
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Ndmsg {
     pub ndm_family: u8,
     pub ndm_ifindex: i32, // Interface index
     pub ndm_state: u16, // State
     pub ndm_flags: u8, // Flags
     pub ndm_type: u8,
-    // TODO: option nda_cacheinfo
+    pub ndm_cacheinfo: Option<NdaCacheinfo>,
 }
 impl Ndmsg {
     // Ifinfomsg header is native endian
@@ -1652,9 +1688,8 @@ impl Ndmsg {
         read_and_handle_error!(s.ndm_flags, cursor.read_u8());
         read_and_handle_error!(s.ndm_type, cursor.read_u8());
 
-        // TODO revisit: add support for NDA_CACHEINFO/nda_cacheinfo
         if s.ndm_type == 3 {
-            panic!("Add support for NDA_CACHEINFO/nda_cacheinfo!");
+            s.ndm_cacheinfo = NdaCacheinfo::read(cursor);
         }
 
         Some(s)
