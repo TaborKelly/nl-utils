@@ -1801,10 +1801,14 @@ impl Ndmsg {
         try!(write!(f, "{}    ndm_state: {:#X}\n", i_s, self.ndm_state));
         try!(write!(f, "{}    ndm_flags: {:#X}\n", i_s, self.ndm_flags));
         try!(write!(f, "{}    ndm_type: {},\n", i_s, self.ndm_type));
-        // TODO: print ndm_cacheinfo
+        try!(write!(f, "{}    ndm_cacheinfo: ", i_s));
+        match self.ndm_cacheinfo {
+            None => try!(write!(f, "None")),
+            Some(ref cacheinfo) => try!(cacheinfo.pretty_fmt(f, indent+1)),
+        }
 
         // TODO: macro? Or move into Rtattr?
-        try!(write!(f, "{}    ndm_attr: [ ", i_s));
+        try!(write!(f, "\n{}    ndm_attr: [ ", i_s));
         let mut count: usize = 1;
         for a in self.ndm_attr.iter() {
             try!(a.pretty_fmt(f, indent+1));
