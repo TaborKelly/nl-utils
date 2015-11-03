@@ -216,7 +216,7 @@ impl NlMsgEnum {
                 else if *u == rtnetlink::NrMsgType::RTM_NEWNEIGH ||
                    *u == rtnetlink::NrMsgType::RTM_DELNEIGH ||
                    *u == rtnetlink::NrMsgType::RTM_GETNEIGH {
-                    let o = rtnetlink::Ndmsg::read(cursor);
+                    let o = rtnetlink::Ndmsg::read(cursor, nlmsg_len);
                     match o {
                         Some(msg) => NlMsgEnum::Ndmsg(msg),
                         None => NlMsgEnum::MalfromedPacket

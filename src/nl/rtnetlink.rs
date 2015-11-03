@@ -8,6 +8,8 @@ use nl::{format_indent, NlMsg};
 // - flags for all msg types
 // - family for all msg types
 // - attributes for all msg types
+// - concistant naming of messages
+// - concistant naming of attributes
 // - better error handling (option vs Err)
 // - better attribute handling (struct rtnl_link_stats, etc)
 // move code around, especially generated code, to make things more readable
@@ -1664,7 +1666,97 @@ impl ::std::fmt::Display for NdaCacheinfo {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum NdAttr {
+    NDA_UNSPEC = 0,
+    NDA_DST = 1,
+    NDA_LLADDR = 2,
+    NDA_CACHEINFO = 3,
+    NDA_PROBES = 4,
+    NDA_VLAN = 5,
+    NDA_PORT = 6,
+    NDA_VNI = 7,
+    NDA_IFINDEX = 8,
+    NDA_MASTER = 9,
+}
+impl ::std::str::FromStr for NdAttr {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "NDA_UNSPEC" => Ok(NdAttr::NDA_UNSPEC),
+            "NDA_DST" => Ok(NdAttr::NDA_DST),
+            "NDA_LLADDR" => Ok(NdAttr::NDA_LLADDR),
+            "NDA_CACHEINFO" => Ok(NdAttr::NDA_CACHEINFO),
+            "NDA_PROBES" => Ok(NdAttr::NDA_PROBES),
+            "NDA_VLAN" => Ok(NdAttr::NDA_VLAN),
+            "NDA_PORT" => Ok(NdAttr::NDA_PORT),
+            "NDA_VNI" => Ok(NdAttr::NDA_VNI),
+            "NDA_IFINDEX" => Ok(NdAttr::NDA_IFINDEX),
+            "NDA_MASTER" => Ok(NdAttr::NDA_MASTER),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for NdAttr {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            NdAttr::NDA_UNSPEC => write!(f, "NDA_UNSPEC"),
+            NdAttr::NDA_DST => write!(f, "NDA_DST"),
+            NdAttr::NDA_LLADDR => write!(f, "NDA_LLADDR"),
+            NdAttr::NDA_CACHEINFO => write!(f, "NDA_CACHEINFO"),
+            NdAttr::NDA_PROBES => write!(f, "NDA_PROBES"),
+            NdAttr::NDA_VLAN => write!(f, "NDA_VLAN"),
+            NdAttr::NDA_PORT => write!(f, "NDA_PORT"),
+            NdAttr::NDA_VNI => write!(f, "NDA_VNI"),
+            NdAttr::NDA_IFINDEX => write!(f, "NDA_IFINDEX"),
+            NdAttr::NDA_MASTER => write!(f, "NDA_MASTER"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for NdAttr {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(NdAttr::NDA_UNSPEC),
+            1 => Some(NdAttr::NDA_DST),
+            2 => Some(NdAttr::NDA_LLADDR),
+            3 => Some(NdAttr::NDA_CACHEINFO),
+            4 => Some(NdAttr::NDA_PROBES),
+            5 => Some(NdAttr::NDA_VLAN),
+            6 => Some(NdAttr::NDA_PORT),
+            7 => Some(NdAttr::NDA_VNI),
+            8 => Some(NdAttr::NDA_IFINDEX),
+            9 => Some(NdAttr::NDA_MASTER),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(NdAttr::NDA_UNSPEC),
+            1 => Some(NdAttr::NDA_DST),
+            2 => Some(NdAttr::NDA_LLADDR),
+            3 => Some(NdAttr::NDA_CACHEINFO),
+            4 => Some(NdAttr::NDA_PROBES),
+            5 => Some(NdAttr::NDA_VLAN),
+            6 => Some(NdAttr::NDA_PORT),
+            7 => Some(NdAttr::NDA_VNI),
+            8 => Some(NdAttr::NDA_IFINDEX),
+            9 => Some(NdAttr::NDA_MASTER),
+            _ => None
+        }
+    }
+}
+impl Default for NdAttr {
+    fn default() -> NdAttr {
+        NdAttr::NDA_UNSPEC
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Ndmsg {
     pub ndm_family: u8,
     pub ndm_ifindex: i32, // Interface index
@@ -1672,10 +1764,11 @@ pub struct Ndmsg {
     pub ndm_flags: u8, // Flags
     pub ndm_type: u8,
     pub ndm_cacheinfo: Option<NdaCacheinfo>,
+    pub ndm_attr: Vec<Rtattr<NdAttr>>,
 }
 impl Ndmsg {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Ndmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Ndmsg> {
         let mut s = Ndmsg::default();
 
         read_and_handle_error!(s.ndm_family, cursor.read_u8());
@@ -1692,17 +1785,35 @@ impl Ndmsg {
             s.ndm_cacheinfo = NdaCacheinfo::read(cursor);
         }
 
+        while (cursor.position() as usize) < nlmsg_len {
+            let attr = Rtattr::<NdAttr>::read(cursor).unwrap();
+            s.ndm_attr.push(attr);
+        }
+
         Some(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
-        let indent = format_indent(indent);
+        let i_s = format_indent(indent);
+        let i_s_p = format_indent(indent+1);
         try!(write!(f, "{{\n"));
-        try!(write!(f, "{}    ndm_family: {},\n", indent, self.ndm_family));
-        try!(write!(f, "{}    ndm_ifindex: {},\n", indent, self.ndm_ifindex));
-        try!(write!(f, "{}    ndm_state: {:#X}\n", indent, self.ndm_state));
-        try!(write!(f, "{}    ndm_flags: {:#X}\n", indent, self.ndm_flags));
-        try!(write!(f, "{}    ndm_type: {},\n", indent, self.ndm_type));
-        write!(f, "{}}}", indent)
+        try!(write!(f, "{}    ndm_family: {},\n", i_s, self.ndm_family));
+        try!(write!(f, "{}    ndm_ifindex: {},\n", i_s, self.ndm_ifindex));
+        try!(write!(f, "{}    ndm_state: {:#X}\n", i_s, self.ndm_state));
+        try!(write!(f, "{}    ndm_flags: {:#X}\n", i_s, self.ndm_flags));
+        try!(write!(f, "{}    ndm_type: {},\n", i_s, self.ndm_type));
+        // TODO: print ndm_cacheinfo
+
+        // TODO: macro? Or move into Rtattr?
+        try!(write!(f, "{}    ndm_attr: [ ", i_s));
+        let mut count: usize = 1;
+        for a in self.ndm_attr.iter() {
+            try!(a.pretty_fmt(f, indent+1));
+            if count < self.ndm_attr.len() {
+                try!(write!(f, ",\n{}", i_s_p));
+            }
+            count = count + 1;
+        }
+        write!(f, " ],\n{}}}", i_s)
     }
 }
 impl ::std::fmt::Display for Ndmsg {
