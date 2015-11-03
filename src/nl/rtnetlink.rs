@@ -4,17 +4,15 @@ use ::num::FromPrimitive;
 use ::std::fmt;
 use nl::{format_indent, NlMsg};
 
-// TODO:
-// - flags for all msg types
-// - family for all msg types
-// - attributes for all msg types
-// - concistant naming of messages
-// - concistant naming of attributes
-// - better error handling (option vs Err)
-// - better attribute handling (struct rtnl_link_stats, etc)
-// - one more indent for all attrs
-// move code around, especially generated code, to make things more readable
-// More robustness for Rtprot? Theoretically users could use other values.
+/* TODO:
+- concistant naming of messages
+- concistant naming of attributes
+- better error handling (option vs Err)
+- better attribute handling (struct rtnl_link_stats, etc)
+- one more indent for all attrs
+- move code around, especially generated code, to make things more readable
+- more robustness for Rtprot? Theoretically users could use other values.
+*/
 
 // A macro for reading and returning None on error.
 // r = an expresssion that will return/evaluate to a Result
@@ -1994,17 +1992,103 @@ impl ::std::fmt::Display for Ndmsg {
     }
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[allow(dead_code, non_camel_case_types)]
+#[derive(Debug, Copy, Clone)]
+pub enum TcAttr {
+    TCA_UNSPEC = 0,
+    TCA_KIND = 1,
+    TCA_OPTIONS = 2,
+    TCA_STATS = 3,
+    TCA_XSTATS = 4,
+    TCA_RATE = 5,
+    TCA_FCNT = 6,
+    TCA_STATS2 = 7,
+    TCA_STAB = 8,
+}
+impl ::std::str::FromStr for TcAttr {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "TCA_UNSPEC" => Ok(TcAttr::TCA_UNSPEC),
+            "TCA_KIND" => Ok(TcAttr::TCA_KIND),
+            "TCA_OPTIONS" => Ok(TcAttr::TCA_OPTIONS),
+            "TCA_STATS" => Ok(TcAttr::TCA_STATS),
+            "TCA_XSTATS" => Ok(TcAttr::TCA_XSTATS),
+            "TCA_RATE" => Ok(TcAttr::TCA_RATE),
+            "TCA_FCNT" => Ok(TcAttr::TCA_FCNT),
+            "TCA_STATS2" => Ok(TcAttr::TCA_STATS2),
+            "TCA_STAB" => Ok(TcAttr::TCA_STAB),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for TcAttr {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            TcAttr::TCA_UNSPEC => write!(f, "TCA_UNSPEC"),
+            TcAttr::TCA_KIND => write!(f, "TCA_KIND"),
+            TcAttr::TCA_OPTIONS => write!(f, "TCA_OPTIONS"),
+            TcAttr::TCA_STATS => write!(f, "TCA_STATS"),
+            TcAttr::TCA_XSTATS => write!(f, "TCA_XSTATS"),
+            TcAttr::TCA_RATE => write!(f, "TCA_RATE"),
+            TcAttr::TCA_FCNT => write!(f, "TCA_FCNT"),
+            TcAttr::TCA_STATS2 => write!(f, "TCA_STATS2"),
+            TcAttr::TCA_STAB => write!(f, "TCA_STAB"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for TcAttr {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0 => Some(TcAttr::TCA_UNSPEC),
+            1 => Some(TcAttr::TCA_KIND),
+            2 => Some(TcAttr::TCA_OPTIONS),
+            3 => Some(TcAttr::TCA_STATS),
+            4 => Some(TcAttr::TCA_XSTATS),
+            5 => Some(TcAttr::TCA_RATE),
+            6 => Some(TcAttr::TCA_FCNT),
+            7 => Some(TcAttr::TCA_STATS2),
+            8 => Some(TcAttr::TCA_STAB),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0 => Some(TcAttr::TCA_UNSPEC),
+            1 => Some(TcAttr::TCA_KIND),
+            2 => Some(TcAttr::TCA_OPTIONS),
+            3 => Some(TcAttr::TCA_STATS),
+            4 => Some(TcAttr::TCA_XSTATS),
+            5 => Some(TcAttr::TCA_RATE),
+            6 => Some(TcAttr::TCA_FCNT),
+            7 => Some(TcAttr::TCA_STATS2),
+            8 => Some(TcAttr::TCA_STAB),
+            _ => None
+        }
+    }
+}
+impl Default for TcAttr {
+    fn default() -> TcAttr {
+        TcAttr::TCA_UNSPEC
+    }
+}
+
+#[derive(Debug, Default, Clone)]
 pub struct Tcmsg {
     pub tcm_family: u8,
     pub tcm_ifindex: i32,
     pub tcm_handle: u32,
     pub tcm_parent: u32,
     pub tcm_info: u32,
+    pub tcm_attr: Vec<Rtattr<TcAttr>>,
 }
 impl Tcmsg {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Tcmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Tcmsg> {
         let mut s = Tcmsg::default();
 
         read_and_handle_error!(s.tcm_family, cursor.read_u8());
@@ -2017,17 +2101,35 @@ impl Tcmsg {
         read_and_handle_error!(s.tcm_parent, cursor.read_u32::<NativeEndian>());
         read_and_handle_error!(s.tcm_info, cursor.read_u32::<NativeEndian>());
 
+        // TODO: revisit. Move into Rtattr?
+        while (cursor.position() as usize) < nlmsg_len {
+            let attr = Rtattr::<TcAttr>::read(cursor).unwrap();
+            s.tcm_attr.push(attr);
+        }
+
         Some(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
-        let indent = format_indent(indent);
+        let i_s = format_indent(indent);
+        let i_s_p = format_indent(indent+1);
         try!(write!(f, "{{\n"));
-        try!(write!(f, "{}    tcm_family: {},\n", indent, self.tcm_family));
-        try!(write!(f, "{}    tcm_ifindex: {},\n", indent, self.tcm_ifindex));
-        try!(write!(f, "{}    tcm_handle: {:#X}\n", indent, self.tcm_handle));
-        try!(write!(f, "{}    tcm_parent: {:#X}\n", indent, self.tcm_parent));
-        try!(write!(f, "{}    tcm_info: {},\n", indent, self.tcm_info));
-        write!(f, "{}}}", indent)
+        try!(write!(f, "{}    tcm_family: {},\n", i_s, self.tcm_family));
+        try!(write!(f, "{}    tcm_ifindex: {},\n", i_s, self.tcm_ifindex));
+        try!(write!(f, "{}    tcm_handle: {:#X}\n", i_s, self.tcm_handle));
+        try!(write!(f, "{}    tcm_parent: {:#X}\n", i_s, self.tcm_parent));
+        try!(write!(f, "{}    tcm_info: {},\n", i_s, self.tcm_info));
+
+        // TODO: macro? Or move into Rtattr?
+        try!(write!(f, "{}    tcm_attr: [ ", i_s));
+        let mut count: usize = 1;
+        for a in self.tcm_attr.iter() {
+            try!(a.pretty_fmt(f, indent+1));
+            if count < self.tcm_attr.len() {
+                try!(write!(f, ",\n{}", i_s_p));
+            }
+            count = count + 1;
+        }
+        write!(f, " ],\n{}}}", i_s)
     }
 }
 impl ::std::fmt::Display for Tcmsg {

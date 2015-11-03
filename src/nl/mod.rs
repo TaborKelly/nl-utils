@@ -231,7 +231,7 @@ impl NlMsgEnum {
                    *u == rtnetlink::NrMsgType::RTM_NEWTFILTER ||
                    *u == rtnetlink::NrMsgType::RTM_DELTFILTER ||
                    *u == rtnetlink::NrMsgType::RTM_GETTFILTER {
-                    let o = rtnetlink::Tcmsg::read(cursor);
+                    let o = rtnetlink::Tcmsg::read(cursor, nlmsg_len);
                     match o {
                         Some(msg) => NlMsgEnum::Tcmsg(msg),
                         None => NlMsgEnum::MalfromedPacket
