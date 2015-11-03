@@ -12,6 +12,7 @@ use nl::{format_indent, NlMsg};
 // - concistant naming of attributes
 // - better error handling (option vs Err)
 // - better attribute handling (struct rtnl_link_stats, etc)
+// - one more indent for all attrs
 // move code around, especially generated code, to make things more readable
 // More robustness for Rtprot? Theoretically users could use other values.
 
@@ -1630,6 +1631,91 @@ impl ::std::fmt::Display for Rtmsg {
     }
 }
 
+#[allow(dead_code, non_camel_case_types)]
+pub enum NdState {
+    NUD_NONE = 0x0,
+    NUD_INCOMPLETE = 0x1,
+    NUD_REACHABLE = 0x2,
+    NUD_STALE = 0x4,
+    NUD_DELAY = 0x8,
+    NUD_PROBE = 0x10,
+    NUD_FAILED = 0x20,
+    NUD_NOARP = 0x40,
+    NUD_PERMANENT = 0x80,
+}
+impl ::std::str::FromStr for NdState {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "NUD_NONE" => Ok(NdState::NUD_NONE),
+            "NUD_INCOMPLETE" => Ok(NdState::NUD_INCOMPLETE),
+            "NUD_REACHABLE" => Ok(NdState::NUD_REACHABLE),
+            "NUD_STALE" => Ok(NdState::NUD_STALE),
+            "NUD_DELAY" => Ok(NdState::NUD_DELAY),
+            "NUD_PROBE" => Ok(NdState::NUD_PROBE),
+            "NUD_FAILED" => Ok(NdState::NUD_FAILED),
+            "NUD_NOARP" => Ok(NdState::NUD_NOARP),
+            "NUD_PERMANENT" => Ok(NdState::NUD_PERMANENT),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for NdState {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            NdState::NUD_NONE => write!(f, "NUD_NONE"),
+            NdState::NUD_INCOMPLETE => write!(f, "NUD_INCOMPLETE"),
+            NdState::NUD_REACHABLE => write!(f, "NUD_REACHABLE"),
+            NdState::NUD_STALE => write!(f, "NUD_STALE"),
+            NdState::NUD_DELAY => write!(f, "NUD_DELAY"),
+            NdState::NUD_PROBE => write!(f, "NUD_PROBE"),
+            NdState::NUD_FAILED => write!(f, "NUD_FAILED"),
+            NdState::NUD_NOARP => write!(f, "NUD_NOARP"),
+            NdState::NUD_PERMANENT => write!(f, "NUD_PERMANENT"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for NdState {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0x0 => Some(NdState::NUD_NONE),
+            0x1 => Some(NdState::NUD_INCOMPLETE),
+            0x2 => Some(NdState::NUD_REACHABLE),
+            0x4 => Some(NdState::NUD_STALE),
+            0x8 => Some(NdState::NUD_DELAY),
+            0x10 => Some(NdState::NUD_PROBE),
+            0x20 => Some(NdState::NUD_FAILED),
+            0x40 => Some(NdState::NUD_NOARP),
+            0x80 => Some(NdState::NUD_PERMANENT),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0x0 => Some(NdState::NUD_NONE),
+            0x1 => Some(NdState::NUD_INCOMPLETE),
+            0x2 => Some(NdState::NUD_REACHABLE),
+            0x4 => Some(NdState::NUD_STALE),
+            0x8 => Some(NdState::NUD_DELAY),
+            0x10 => Some(NdState::NUD_PROBE),
+            0x20 => Some(NdState::NUD_FAILED),
+            0x40 => Some(NdState::NUD_NOARP),
+            0x80 => Some(NdState::NUD_PERMANENT),
+            _ => None
+        }
+    }
+}
+impl Default for NdState {
+    fn default() -> NdState {
+        NdState::NUD_NONE
+    }
+}
+impl_pretty_flag_fmt!(NdState, NdState::NUD_PERMANENT, NdState::from_u32);
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct NdaCacheinfo {
     pub ndm_confirmed: u32,
@@ -1798,8 +1884,9 @@ impl Ndmsg {
         try!(write!(f, "{{\n"));
         try!(write!(f, "{}    ndm_family: {},\n", i_s, self.ndm_family));
         try!(write!(f, "{}    ndm_ifindex: {},\n", i_s, self.ndm_ifindex));
-        try!(write!(f, "{}    ndm_state: {:#X}\n", i_s, self.ndm_state));
-        try!(write!(f, "{}    ndm_flags: {:#X}\n", i_s, self.ndm_flags));
+        try!(write!(f, "{}    ndm_state: {:#X} (", i_s, self.ndm_state));
+        try!(NdState::pretty_fmt(f, self.ndm_state as u32));
+        try!(write!(f, ")\n{}    ndm_flags: {:#X}\n", i_s, self.ndm_flags));
         try!(write!(f, "{}    ndm_type: {},\n", i_s, self.ndm_type));
         try!(write!(f, "{}    ndm_cacheinfo: ", i_s));
         match self.ndm_cacheinfo {
