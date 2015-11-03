@@ -1828,7 +1828,7 @@ impl ::std::fmt::Display for NdaCacheinfo {
 }
 
 #[allow(dead_code, non_camel_case_types)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NdAttr {
     NDA_UNSPEC = 0,
     NDA_DST = 1,
@@ -1923,7 +1923,9 @@ pub struct Ndmsg {
     pub ndm_ifindex: i32, // Interface index
     pub ndm_state: u16, // State
     pub ndm_flags: u8, // Flags
-    pub ndm_type: u8,
+    // I *think* this is the right type, but don't have a lot of examples of
+    // its use.
+    pub ndm_type: NdAttr,
     pub ndm_cacheinfo: Option<NdaCacheinfo>,
     pub ndm_attr: Vec<Rtattr<NdAttr>>,
 }
@@ -1940,9 +1942,11 @@ impl Ndmsg {
         read_and_handle_error!(s.ndm_ifindex, cursor.read_i32::<NativeEndian>());
         read_and_handle_error!(s.ndm_state, cursor.read_u16::<NativeEndian>());
         read_and_handle_error!(s.ndm_flags, cursor.read_u8());
-        read_and_handle_error!(s.ndm_type, cursor.read_u8());
+        let ndm_type: u8;
+        read_and_handle_error!(ndm_type, cursor.read_u8());
+        s.ndm_type = NdAttr::from_u8(ndm_type).unwrap();
 
-        if s.ndm_type == 3 {
+        if s.ndm_type == NdAttr::NDA_CACHEINFO {
             s.ndm_cacheinfo = NdaCacheinfo::read(cursor);
         }
 
