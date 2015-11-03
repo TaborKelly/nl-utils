@@ -1716,6 +1716,81 @@ impl Default for NdState {
 }
 impl_pretty_flag_fmt!(NdState, NdState::NUD_PERMANENT, NdState::from_u32);
 
+#[allow(dead_code, non_camel_case_types)]
+pub enum NdFlags {
+    NTF_NONE = 0x0,
+    NTF_USE = 0x1,
+    NTF_SELF = 0x2,
+    NTF_MASTER = 0x4,
+    NTF_PROXY = 0x8,
+    NTF_EXT_LEARNED = 0x10,
+    NTF_ROUTER = 0x80,
+}
+impl ::std::str::FromStr for NdFlags {
+    type Err = ();
+    #[allow(dead_code)]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "NTF_NONE" => Ok(NdFlags::NTF_NONE),
+            "NTF_USE" => Ok(NdFlags::NTF_USE),
+            "NTF_SELF" => Ok(NdFlags::NTF_SELF),
+            "NTF_MASTER" => Ok(NdFlags::NTF_MASTER),
+            "NTF_PROXY" => Ok(NdFlags::NTF_PROXY),
+            "NTF_EXT_LEARNED" => Ok(NdFlags::NTF_EXT_LEARNED),
+            "NTF_ROUTER" => Ok(NdFlags::NTF_ROUTER),
+            _ => Err( () )
+        }
+    }
+}
+impl ::std::fmt::Display for NdFlags {
+    #[allow(dead_code)]
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match *self {
+            NdFlags::NTF_NONE => write!(f, "NTF_NONE"),
+            NdFlags::NTF_USE => write!(f, "NTF_USE"),
+            NdFlags::NTF_SELF => write!(f, "NTF_SELF"),
+            NdFlags::NTF_MASTER => write!(f, "NTF_MASTER"),
+            NdFlags::NTF_PROXY => write!(f, "NTF_PROXY"),
+            NdFlags::NTF_EXT_LEARNED => write!(f, "NTF_EXT_LEARNED"),
+            NdFlags::NTF_ROUTER => write!(f, "NTF_ROUTER"),
+        }
+    }
+}
+impl ::num::traits::FromPrimitive for NdFlags {
+    #[allow(dead_code)]
+    fn from_i64(n: i64) -> Option<Self> {
+        match n {
+            0x0 => Some(NdFlags::NTF_NONE),
+            0x1 => Some(NdFlags::NTF_USE),
+            0x2 => Some(NdFlags::NTF_SELF),
+            0x4 => Some(NdFlags::NTF_MASTER),
+            0x8 => Some(NdFlags::NTF_PROXY),
+            0x10 => Some(NdFlags::NTF_EXT_LEARNED),
+            0x80 => Some(NdFlags::NTF_ROUTER),
+            _ => None
+        }
+    }
+    #[allow(dead_code)]
+    fn from_u64(n: u64) -> Option<Self> {
+        match n {
+            0x0 => Some(NdFlags::NTF_NONE),
+            0x1 => Some(NdFlags::NTF_USE),
+            0x2 => Some(NdFlags::NTF_SELF),
+            0x4 => Some(NdFlags::NTF_MASTER),
+            0x8 => Some(NdFlags::NTF_PROXY),
+            0x10 => Some(NdFlags::NTF_EXT_LEARNED),
+            0x80 => Some(NdFlags::NTF_ROUTER),
+            _ => None
+        }
+    }
+}
+impl Default for NdFlags {
+    fn default() -> NdFlags {
+        NdFlags::NTF_NONE
+    }
+}
+impl_pretty_flag_fmt!(NdFlags, NdFlags::NTF_ROUTER, NdFlags::from_u32);
+
 #[derive(Debug, Default, Copy, Clone)]
 pub struct NdaCacheinfo {
     pub ndm_confirmed: u32,
@@ -1886,8 +1961,9 @@ impl Ndmsg {
         try!(write!(f, "{}    ndm_ifindex: {},\n", i_s, self.ndm_ifindex));
         try!(write!(f, "{}    ndm_state: {:#X} (", i_s, self.ndm_state));
         try!(NdState::pretty_fmt(f, self.ndm_state as u32));
-        try!(write!(f, ")\n{}    ndm_flags: {:#X}\n", i_s, self.ndm_flags));
-        try!(write!(f, "{}    ndm_type: {},\n", i_s, self.ndm_type));
+        try!(write!(f, ")\n{}    ndm_flags: {:#X} (", i_s, self.ndm_flags));
+        try!(NdFlags::pretty_fmt(f, self.ndm_flags as u32));
+        try!(write!(f, ")\n{}    ndm_type: {},\n", i_s, self.ndm_type));
         try!(write!(f, "{}    ndm_cacheinfo: ", i_s));
         match self.ndm_cacheinfo {
             None => try!(write!(f, "None")),
