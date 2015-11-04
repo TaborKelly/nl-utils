@@ -12,7 +12,7 @@ extern crate env_logger; // TODO: replace
 extern crate regex;
 
 // TODO: add more tests
-// TODO: Add support for Default and pretty_fmt()
+// TODO: Add support for and pretty_fmt()
 
 #[derive(Debug)]
 #[derive(Default)]
@@ -21,6 +21,7 @@ struct Args {
     output: Option<String>,
     name: String,
     c_enum: bool,
+    default: bool,
     display: bool,
     fromstr: bool,
     fromprimative: bool,
@@ -44,6 +45,8 @@ fn parse_options() -> Args {
     opts.optflag("", "enum", "parse C enum input instead of #define");
     opts.optflag("a", "all", "implment all of the traits (equivalent to \
                  --display --fromprimative --fromstr)");
+    opts.optflag("", "default", "implement the Default trait with the first \
+                 value");
     opts.optflag("", "display", "implement the std::fmt::Display trait");
     opts.optflag("", "fromprimative", "implement the num::traits::FromPrimitive trait");
     opts.optflag("", "fromstr", "implement the std::str::FromStr trait");
@@ -62,11 +65,13 @@ fn parse_options() -> Args {
     // apply default name
     a.name = name.unwrap_or(String::from("Name"));
     a.c_enum = matches.opt_present("enum");
+    a.default = matches.opt_present("default");
     a.display = matches.opt_present("display");
     a.fromprimative = matches.opt_present("fromprimative");
     a.fromstr = matches.opt_present("fromstr");
     a.hex = matches.opt_present("hex");
     if matches.opt_present("all") {
+        a.default = true;
         a.display = true;
         a.fromprimative = true;
         a.fromstr = true;
@@ -188,6 +193,17 @@ impl FormatOutput for FormatOutputFromPrimative {
     }
 }
 
+struct FormatOutputDefault;
+impl FormatOutput for FormatOutputDefault {
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
+        w.write(format!("impl Default for {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("    fn default() -> {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("        {}::{}\n", name, vec[0].s).as_bytes()).unwrap();
+        w.write(format!("    }}\n").as_bytes()).unwrap();
+        w.write(format!("}}\n").as_bytes()).unwrap();
+    }
+}
+
 struct FormatOutputDisplay;
 impl FormatOutput for FormatOutputDisplay {
     fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
@@ -267,6 +283,7 @@ fn main() {
     let mut fov: Vec<Box<FormatOutput>> = Vec::new();
     fov.push(Box::new(FormatOutputEnum));
     if args.fromstr { fov.push(Box::new(FormatOutputFromStr)); }
+    if args.default { fov.push(Box::new(FormatOutputDefault)); }
     if args.display { fov.push(Box::new(FormatOutputDisplay)); }
     if args.fromprimative { fov.push(Box::new(FormatOutputFromPrimative)); }
 
