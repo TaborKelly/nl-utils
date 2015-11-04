@@ -12,7 +12,6 @@ extern crate env_logger; // TODO: replace
 extern crate regex;
 
 // TODO: add more tests
-// TODO: Add support for and pretty_fmt()
 
 #[derive(Debug)]
 #[derive(Default)]
@@ -26,6 +25,7 @@ struct Args {
     fromstr: bool,
     fromprimative: bool,
     hex: bool,
+    pretty_fmt: bool,
 }
 
 trait FormatOutput {
@@ -51,6 +51,7 @@ fn parse_options() -> Args {
     opts.optflag("", "fromprimative", "implement the num::traits::FromPrimitive trait");
     opts.optflag("", "fromstr", "implement the std::str::FromStr trait");
     opts.optflag("", "hex", "hexadecimal output");
+    opts.optflag("", "pretty_fmt", "implement pretty_fmt()");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
         Err(f) => { panic!(f.to_string()) }
@@ -68,6 +69,11 @@ fn parse_options() -> Args {
     a.default = matches.opt_present("default");
     a.display = matches.opt_present("display");
     a.fromprimative = matches.opt_present("fromprimative");
+    a.pretty_fmt = matches.opt_present("pretty_fmt");
+    if (a.pretty_fmt) {
+        a.fromprimative = true;
+        a.display = true;
+    }
     a.fromstr = matches.opt_present("fromstr");
     a.hex = matches.opt_present("hex");
     if matches.opt_present("all") {
@@ -75,6 +81,7 @@ fn parse_options() -> Args {
         a.display = true;
         a.fromprimative = true;
         a.fromstr = true;
+        a.pretty_fmt = true;
     }
 
     a
@@ -193,6 +200,33 @@ impl FormatOutput for FormatOutputFromPrimative {
     }
 }
 
+struct FormatOutputPrettyFmt;
+impl FormatOutput for FormatOutputPrettyFmt {
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
+        w.write(format!("impl {} {{\n", name).as_bytes()).unwrap();
+        w.write(format!("    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
+        w.write(format!("        let mut shift: u32 = 0;\n").as_bytes()).unwrap();
+        w.write(format!("        let mut result: u32 = 1<<shift;\n").as_bytes()).unwrap();
+        w.write(format!("        let mut found = false;\n").as_bytes()).unwrap();
+        w.write(format!("        while result <= {}::{} as u32 {{\n", name, vec.last().unwrap().s).as_bytes()).unwrap();
+        w.write(format!("            let tmp = result & flags;\n").as_bytes()).unwrap();
+        w.write(format!("            if tmp > 0 {{\n").as_bytes()).unwrap();
+        w.write(format!("                if found {{\n").as_bytes()).unwrap();
+        w.write(format!("                    try!(write!(f, \"|\"));\n").as_bytes()).unwrap();
+        w.write(format!("                }}\n").as_bytes()).unwrap();
+        w.write(format!("                let flag = {}::from_u32(tmp).unwrap();\n", name).as_bytes()).unwrap();
+        w.write(format!("                try!(write!(f, \"{{}}\", flag));\n").as_bytes()).unwrap();
+        w.write(format!("                found = true;\n").as_bytes()).unwrap();
+        w.write(format!("            }}\n").as_bytes()).unwrap();
+        w.write(format!("            shift += 1;\n").as_bytes()).unwrap();
+        w.write(format!("            result = 1<<shift;\n").as_bytes()).unwrap();
+        w.write(format!("        }}\n").as_bytes()).unwrap();
+        w.write(format!("        write!(f, \"\")\n").as_bytes()).unwrap();
+        w.write(format!("    }}\n").as_bytes()).unwrap();
+        w.write(format!("}}\n").as_bytes()).unwrap();
+    }
+}
+
 struct FormatOutputDefault;
 impl FormatOutput for FormatOutputDefault {
     fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
@@ -286,6 +320,7 @@ fn main() {
     if args.default { fov.push(Box::new(FormatOutputDefault)); }
     if args.display { fov.push(Box::new(FormatOutputDisplay)); }
     if args.fromprimative { fov.push(Box::new(FormatOutputFromPrimative)); }
+    if args.pretty_fmt { fov.push(Box::new(FormatOutputPrettyFmt)); }
 
     let vi = get_input(&args);
     let mut w = write_factory(&args);
