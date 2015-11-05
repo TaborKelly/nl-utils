@@ -978,7 +978,7 @@ impl Ifaddrmsg {
         try!(write!(f, "{}    ifa_prefixlen: {},\n", i_s, self.ifa_prefixlen));
         try!(write!(f, "{}    ifa_flags: {:#X} (", i_s, self.ifa_flags));
         try!(IfaFlags::pretty_fmt(f, self.ifa_flags as u32));
-        try!(write!(f, ")\n{}    ifa_scope: {},\n", i_s, self.ifa_scope));
+        try!(write!(f, "),\n{}    ifa_scope: {},\n", i_s, self.ifa_scope));
         try!(write!(f, "{}    ifa_index: {},\n", i_s, self.ifa_index));
         try!(write!(f, "{}    ifa_attr: [ ", i_s));
 
@@ -1599,7 +1599,7 @@ impl Rtmsg {
         try!(write!(f, "{{\n"));
         try!(write!(f, "{}    rtm_family: {},\n", i_s, self.rtm_family));
         try!(write!(f, "{}    rtm_dst_len: {},\n", i_s, self.rtm_dst_len));
-        try!(write!(f, "{}    rtm_src_len: {}\n", i_s, self.rtm_src_len));
+        try!(write!(f, "{}    rtm_src_len: {},\n", i_s, self.rtm_src_len));
         try!(write!(f, "{}    rtm_tos: {},\n", i_s, self.rtm_tos));
         try!(write!(f, "{}    rtm_table: {} (", i_s, self.rtm_table));
         try!(RtTable::pretty_fmt(f, self.rtm_table));
@@ -1610,7 +1610,7 @@ impl Rtmsg {
 
         try!(write!(f, "{}    rtm_flags: {:#X} (", i_s, self.rtm_flags));
         try!(RtmFlags::pretty_fmt(f, self.rtm_flags as u32));
-        try!(write!(f, ")\n{}    rtm_attr: [ ", i_s));
+        try!(write!(f, "),\n{}    rtm_attr: [ ", i_s));
         let mut count: usize = 1;
         for a in self.rtm_attr.iter() {
             try!(a.pretty_fmt(f, indent+1));
@@ -1813,8 +1813,8 @@ impl NdaCacheinfo {
         try!(write!(f, "{{\n"));
         try!(write!(f, "{}    ndm_confirmed: {},\n", indent, self.ndm_confirmed));
         try!(write!(f, "{}    ndm_used: {},\n", indent, self.ndm_used));
-        try!(write!(f, "{}    ndm_updated: {:#X}\n", indent, self.ndm_updated));
-        try!(write!(f, "{}    ndm_flags: {:#X}\n", indent, self.ndm_flags));
+        try!(write!(f, "{}    ndm_updated: {:#X},\n", indent, self.ndm_updated));
+        try!(write!(f, "{}    ndm_flags: {:#X},\n", indent, self.ndm_flags));
         write!(f, "{}}}", indent)
     }
 }
@@ -1963,9 +1963,9 @@ impl Ndmsg {
         try!(write!(f, "{}    ndm_ifindex: {},\n", i_s, self.ndm_ifindex));
         try!(write!(f, "{}    ndm_state: {:#X} (", i_s, self.ndm_state));
         try!(NdState::pretty_fmt(f, self.ndm_state as u32));
-        try!(write!(f, ")\n{}    ndm_flags: {:#X} (", i_s, self.ndm_flags));
+        try!(write!(f, "),\n{}    ndm_flags: {:#X} (", i_s, self.ndm_flags));
         try!(NdFlags::pretty_fmt(f, self.ndm_flags as u32));
-        try!(write!(f, ")\n{}    ndm_type: {},\n", i_s, self.ndm_type));
+        try!(write!(f, "),\n{}    ndm_type: {},\n", i_s, self.ndm_type));
         try!(write!(f, "{}    ndm_cacheinfo: ", i_s));
         match self.ndm_cacheinfo {
             None => try!(write!(f, "None")),
@@ -1973,7 +1973,7 @@ impl Ndmsg {
         }
 
         // TODO: macro? Or move into Rtattr?
-        try!(write!(f, "\n{}    ndm_attr: [ ", i_s));
+        try!(write!(f, ",\n{}    ndm_attr: [ ", i_s));
         let mut count: usize = 1;
         for a in self.ndm_attr.iter() {
             try!(a.pretty_fmt(f, indent+1));
@@ -2115,8 +2115,8 @@ impl Tcmsg {
         try!(write!(f, "{{\n"));
         try!(write!(f, "{}    tcm_family: {},\n", i_s, self.tcm_family));
         try!(write!(f, "{}    tcm_ifindex: {},\n", i_s, self.tcm_ifindex));
-        try!(write!(f, "{}    tcm_handle: {:#X}\n", i_s, self.tcm_handle));
-        try!(write!(f, "{}    tcm_parent: {:#X}\n", i_s, self.tcm_parent));
+        try!(write!(f, "{}    tcm_handle: {:#X},\n", i_s, self.tcm_handle));
+        try!(write!(f, "{}    tcm_parent: {:#X},\n", i_s, self.tcm_parent));
         try!(write!(f, "{}    tcm_info: {},\n", i_s, self.tcm_info));
 
         // TODO: macro? Or move into Rtattr?

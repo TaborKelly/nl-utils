@@ -9,7 +9,6 @@ pub mod rtnetlink;
  - better support for nlmsg_flags (NLM_F_ROOT, NLM_F_MATCH, NLM_F_ATOMIC or
    NLM_F_REPLACE, NLM_F_EXCL, NLM_F_CREATE, NLM_F_APPEND)
  - multiple message bodies per packet
- - ',' consistency in output
 */
 
 use ::std;
@@ -92,7 +91,7 @@ impl CookedHeader {
             }
             count = count + 1;
         }
-        try!(write!(f, " ]\n{}    netlink_family: {},\n", indent, self.netlink_family));
+        try!(write!(f, " ],\n{}    netlink_family: {},\n", indent, self.netlink_family));
         write!(f, "{}}}", indent)
     }
 }
@@ -410,10 +409,10 @@ impl NlMsg
     fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
         try!(write!(f, "{{\n"));
-        try!(write!(f, "{}    netlink_family: {}\n", i_s, self.netlink_family));
+        try!(write!(f, "{}    netlink_family: {},\n", i_s, self.netlink_family));
         try!(write!(f, "{}    nlmsghdr: ", i_s));
         try!(self.nlmsghdr.pretty_fmt(f, indent+1));
-        try!(write!(f, "\n{}    nlmsg: {}\n", i_s, self.nlmsg));
+        try!(write!(f, ",\n{}    nlmsg: {},\n", i_s, self.nlmsg));
         write!(f, "}}")
     }
 }
