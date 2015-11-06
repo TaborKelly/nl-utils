@@ -29,7 +29,7 @@ struct Args {
 }
 
 trait FormatOutput {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>);
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()>;
 }
 
 fn parse_options() -> Args {
@@ -70,7 +70,7 @@ fn parse_options() -> Args {
     a.display = matches.opt_present("display");
     a.fromprimative = matches.opt_present("fromprimative");
     a.pretty_fmt = matches.opt_present("pretty_fmt");
-    if (a.pretty_fmt) {
+    if a.pretty_fmt {
         a.fromprimative = true;
         a.display = true;
     }
@@ -100,7 +100,7 @@ fn get_num(s: &str) -> i32 {
     let re_int = Regex::new(r"^(0x)?([:digit:]+)$").unwrap();
     let re_shift = Regex::new(r"^([:digit:]+)[:space:]*<<[:space:]*([:digit:]+)$").unwrap();
 
-    if (re_int.is_match(s)) {
+    if re_int.is_match(s) {
         let caps = re_int.captures(s).unwrap();
         let radix: u32 = match caps.at(1) {
             Some(_) => 16,
@@ -109,7 +109,7 @@ fn get_num(s: &str) -> i32 {
         let digits = caps.at(2).unwrap();
         i32::from_str_radix(digits, radix).unwrap()
     }
-    else if (re_shift.is_match(s)) {
+    else if re_shift.is_match(s) {
         let caps = re_shift.captures(s).unwrap();
         let l: i32 = FromStr::from_str(caps.at(1).unwrap()).unwrap();
         let r: i32 = FromStr::from_str(caps.at(2).unwrap()).unwrap();
@@ -122,7 +122,6 @@ fn get_num(s: &str) -> i32 {
 
 /// Return a sorted Vec of CEnum structs
 fn parse_buff<T: BufRead>(read: T, parse_enum: bool) -> Vec<CEnum> {
-    use std::str::FromStr;
     use regex::Regex;
     let re = match parse_enum {
         true => Regex::new(r"^[:space:]*([[:alnum:]_]+)([:space:]*=[:space:]*([:graph:]+))?[:space:]*,").unwrap(),
@@ -166,128 +165,138 @@ fn get_input(args: &Args) -> Vec<CEnum> {
 
 struct FormatOutputFromPrimative;
 impl FormatOutput for FormatOutputFromPrimative {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
-        w.write(format!("impl ::num::traits::FromPrimitive for {} {{\n", name).as_bytes()).unwrap();
-        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-        w.write(format!("    fn from_i64(n: i64) -> Option<Self> {{\n").as_bytes()).unwrap();
-        w.write(format!("        match n {{\n").as_bytes()).unwrap();
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()> {
+        try!(write!(w, "impl ::num::traits::FromPrimitive for {} {{\n", name));
+        try!(write!(w, "    #[allow(dead_code)]\n"));
+        try!(write!(w, "    fn from_i64(n: i64) -> Option<Self> {{\n"));
+        try!(write!(w, "        match n {{\n"));
         for v in vec {
-            if (hex) {
-                w.write(format!("            0x{:X} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+            if hex {
+                try!(write!(w, "            0x{:X} => Some({}::{}),\n", v.i, name, v.s));
             }
             else {
-                w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+                try!(write!(w, "            {} => Some({}::{}),\n", v.i, name, v.s));
             }
         }
-        w.write(format!("            _ => None\n").as_bytes()).unwrap();
-        w.write(format!("        }}\n").as_bytes()).unwrap();
-        w.write(format!("    }}\n").as_bytes()).unwrap();
-        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-        w.write(format!("    fn from_u64(n: u64) -> Option<Self> {{\n").as_bytes()).unwrap();
-        w.write(format!("        match n {{\n").as_bytes()).unwrap();
+        try!(write!(w, "            _ => None\n"));
+        try!(write!(w, "        }}\n"));
+        try!(write!(w, "    }}\n"));
+        try!(write!(w, "    #[allow(dead_code)]\n"));
+        try!(write!(w, "    fn from_u64(n: u64) -> Option<Self> {{\n"));
+        try!(write!(w, "        match n {{\n"));
         for v in vec {
-            if (hex) {
-                w.write(format!("            0x{:X} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+            if hex {
+                try!(write!(w, "            0x{:X} => Some({}::{}),\n", v.i, name, v.s));
             }
             else {
-                w.write(format!("            {} => Some({}::{}),\n", v.i, name, v.s).as_bytes()).unwrap();
+                try!(write!(w, "            {} => Some({}::{}),\n", v.i, name, v.s));
             }
         }
-        w.write(format!("            _ => None\n").as_bytes()).unwrap();
-        w.write(format!("        }}\n").as_bytes()).unwrap();
-        w.write(format!("    }}\n").as_bytes()).unwrap();
-        w.write(format!("}}\n").as_bytes()).unwrap();
+        try!(write!(w, "            _ => None\n"));
+        try!(write!(w, "        }}\n"));
+        try!(write!(w, "    }}\n"));
+        try!(write!(w, "}}\n"));
+        Ok(())
     }
 }
 
 struct FormatOutputPrettyFmt;
 impl FormatOutput for FormatOutputPrettyFmt {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
-        w.write(format!("impl {} {{\n", name).as_bytes()).unwrap();
-        w.write(format!("    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
-        w.write(format!("        let mut shift: u32 = 0;\n").as_bytes()).unwrap();
-        w.write(format!("        let mut result: u32 = 1<<shift;\n").as_bytes()).unwrap();
-        w.write(format!("        let mut found = false;\n").as_bytes()).unwrap();
-        w.write(format!("        while result <= {}::{} as u32 {{\n", name, vec.last().unwrap().s).as_bytes()).unwrap();
-        w.write(format!("            let tmp = result & flags;\n").as_bytes()).unwrap();
-        w.write(format!("            if tmp > 0 {{\n").as_bytes()).unwrap();
-        w.write(format!("                if found {{\n").as_bytes()).unwrap();
-        w.write(format!("                    try!(write!(f, \"|\"));\n").as_bytes()).unwrap();
-        w.write(format!("                }}\n").as_bytes()).unwrap();
-        w.write(format!("                let flag = {}::from_u32(tmp).unwrap();\n", name).as_bytes()).unwrap();
-        w.write(format!("                try!(write!(f, \"{{}}\", flag));\n").as_bytes()).unwrap();
-        w.write(format!("                found = true;\n").as_bytes()).unwrap();
-        w.write(format!("            }}\n").as_bytes()).unwrap();
-        w.write(format!("            shift += 1;\n").as_bytes()).unwrap();
-        w.write(format!("            result = 1<<shift;\n").as_bytes()).unwrap();
-        w.write(format!("        }}\n").as_bytes()).unwrap();
-        w.write(format!("        write!(f, \"\")\n").as_bytes()).unwrap();
-        w.write(format!("    }}\n").as_bytes()).unwrap();
-        w.write(format!("}}\n").as_bytes()).unwrap();
+    #[allow(unused_variables)]
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()> {
+        try!(write!(w, "impl {} {{\n", name));
+        try!(write!(w, "    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {{\n"));
+        try!(write!(w, "        let mut shift: u32 = 0;\n"));
+        try!(write!(w, "        let mut result: u32 = 1<<shift;\n"));
+        try!(write!(w, "        let mut found = false;\n"));
+        try!(write!(w, "        while result <= {}::{} as u32 {{\n", name, vec.last().unwrap().s));
+        try!(write!(w, "            let tmp = result & flags;\n"));
+        try!(write!(w, "            if tmp > 0 {{\n"));
+        try!(write!(w, "                if found {{\n"));
+        try!(write!(w, "                    try!(write!(f, \"|\"));\n"));
+        try!(write!(w, "                }}\n"));
+        try!(write!(w, "                let flag = {}::from_u32(tmp).unwrap();\n", name));
+        try!(write!(w, "                try!(write!(f, \"{{}}\", flag));\n"));
+        try!(write!(w, "                found = true;\n"));
+        try!(write!(w, "            }}\n"));
+        try!(write!(w, "            shift += 1;\n"));
+        try!(write!(w, "            result = 1<<shift;\n"));
+        try!(write!(w, "        }}\n"));
+        try!(write!(w, "        write!(f, \"\")\n"));
+        try!(write!(w, "    }}\n"));
+        try!(write!(w, "}}\n"));
+        Ok(())
     }
 }
 
 struct FormatOutputDefault;
 impl FormatOutput for FormatOutputDefault {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
-        w.write(format!("impl Default for {} {{\n", name).as_bytes()).unwrap();
-        w.write(format!("    fn default() -> {} {{\n", name).as_bytes()).unwrap();
-        w.write(format!("        {}::{}\n", name, vec[0].s).as_bytes()).unwrap();
-        w.write(format!("    }}\n").as_bytes()).unwrap();
-        w.write(format!("}}\n").as_bytes()).unwrap();
+    #[allow(unused_variables)]
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()> {
+        try!(write!(w, "impl Default for {} {{\n", name));
+        try!(write!(w, "    fn default() -> {} {{\n", name));
+        try!(write!(w, "        {}::{}\n", name, vec[0].s));
+        try!(write!(w, "    }}\n"));
+        try!(write!(w, "}}\n"));
+        Ok(())
     }
 }
 
 struct FormatOutputDisplay;
 impl FormatOutput for FormatOutputDisplay {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
-        w.write(format!("impl ::std::fmt::Display for {} {{\n", name).as_bytes()).unwrap();
-        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-        w.write(format!("    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {{\n").as_bytes()).unwrap();
-        w.write(format!("        match *self {{\n").as_bytes()).unwrap();
+    #[allow(unused_variables)]
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()> {
+        try!(write!(w, "impl ::std::fmt::Display for {} {{\n", name));
+        try!(write!(w, "    #[allow(dead_code)]\n"));
+        try!(write!(w, "    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {{\n"));
+        try!(write!(w, "        match *self {{\n"));
         for v in vec {
-            w.write(format!("            {}::{} => write!(f, \"{}\"),\n", name, v.s, v.s).as_bytes()).unwrap();
+            try!(write!(w, "            {}::{} => write!(f, \"{}\"),\n", name, v.s, v.s));
         }
-        w.write(format!("        }}\n").as_bytes()).unwrap();
-        w.write(format!("    }}\n").as_bytes()).unwrap();
-        w.write(format!("}}\n").as_bytes()).unwrap();
+        try!(write!(w, "        }}\n"));
+        try!(write!(w, "    }}\n"));
+        try!(write!(w, "}}\n"));
+        Ok(())
     }
 }
 
 struct FormatOutputFromStr;
 impl FormatOutput for FormatOutputFromStr {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
-        w.write(format!("impl ::std::str::FromStr for {} {{\n", name).as_bytes()).unwrap();
-        w.write(format!("    type Err = ();\n").as_bytes()).unwrap();
-        w.write(format!("    #[allow(dead_code)]\n").as_bytes()).unwrap();
-        w.write(format!("    fn from_str(s: &str) -> Result<Self, Self::Err> {{\n").as_bytes()).unwrap();
-        w.write(format!("        match s {{\n").as_bytes()).unwrap();
+    #[allow(unused_variables)]
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()> {
+        try!(write!(w, "impl ::std::str::FromStr for {} {{\n", name));
+        try!(write!(w, "    type Err = ();\n"));
+        try!(write!(w, "    #[allow(dead_code)]\n"));
+        try!(write!(w, "    fn from_str(s: &str) -> Result<Self, Self::Err> {{\n"));
+        try!(write!(w, "        match s {{\n"));
         for v in vec {
-            w.write(format!("            \"{}\" => Ok({}::{}),\n", v.s, name, v.s).as_bytes()).unwrap();
+            try!(write!(w, "            \"{}\" => Ok({}::{}),\n", v.s, name, v.s));
         }
-        w.write(format!("            _ => Err( () )\n").as_bytes()).unwrap();
-        w.write(format!("        }}\n").as_bytes()).unwrap();
-        w.write(format!("    }}\n").as_bytes()).unwrap();
-        w.write(format!("}}\n").as_bytes()).unwrap();
+        try!(write!(w, "            _ => Err( () )\n"));
+        try!(write!(w, "        }}\n"));
+        try!(write!(w, "    }}\n"));
+        try!(write!(w, "}}\n"));
+        Ok(())
     }
 }
 
 struct FormatOutputEnum;
 impl FormatOutput for FormatOutputEnum {
-    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>){
-        w.write(format!("#[allow(dead_code, non_camel_case_types)]\n").as_bytes()).unwrap();
-        w.write(format!("pub enum {} {{\n", name).as_bytes()).unwrap();
+    fn write(&self, w: &mut Write, name: &String, hex: bool, vec: &Vec<CEnum>) -> ::std::io::Result<()> {
+        try!(write!(w, "#[allow(dead_code, non_camel_case_types)]\n"));
+        try!(write!(w, "pub enum {} {{\n", name));
 
         for v in vec {
-            if (hex) {
-                w.write(format!("    {} = 0x{:X},\n", v.s, v.i).as_bytes()).unwrap();
+            if hex {
+                try!(write!(w, "    {} = 0x{:X},\n", v.s, v.i));
             }
             else {
-                w.write(format!("    {} = {},\n", v.s, v.i).as_bytes()).unwrap();
+                try!(write!(w, "    {} = {},\n", v.s, v.i));
             }
         }
 
-        w.write(format!("}}\n").as_bytes()).unwrap();
+        try!(write!(w, "}}\n"));
+        Ok(())
     }
 }
 
@@ -309,7 +318,6 @@ fn write_factory(args: &Args) -> Box<Write> {
 }
 
 fn main() {
-    use std::fs::File;
     env_logger::init().unwrap();
     let args: Args = parse_options();
     debug!("args = {:?}", args);
@@ -326,7 +334,11 @@ fn main() {
     let mut w = write_factory(&args);
 
     for vw in fov {
-        vw.write(&mut w, &args.name, args.hex, &vi);
+        match vw.write(&mut w, &args.name, args.hex, &vi)
+        {
+            Err(e) => println!("Error: {}", e),
+            _ => ()
+        }
     }
 }
 
