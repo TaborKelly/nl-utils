@@ -152,6 +152,7 @@ fn parse_buff<T: BufRead>(read: T, parse_enum: bool) -> Vec<CEnum> {
 fn get_input(args: &Args) -> Vec<CEnum> {
     match args.input {
         Some(ref s) => {
+            // remove this unwrap as soon as expect is stabalized
             let f = File::open(s).unwrap();
             let r = BufReader::new(f);
             parse_buff(r, args.c_enum)
@@ -209,6 +210,8 @@ impl FormatOutput for FormatOutputPrettyFmt {
         try!(write!(w, "        let mut shift: u32 = 0;\n"));
         try!(write!(w, "        let mut result: u32 = 1<<shift;\n"));
         try!(write!(w, "        let mut found = false;\n"));
+        // This should never fail because we check in main() to make sure that
+        // it isn't empty.
         try!(write!(w, "        while result <= {}::{} as u32 {{\n", name, vec.last().unwrap().s));
         try!(write!(w, "            let tmp = result & flags;\n"));
         try!(write!(w, "            if tmp > 0 {{\n"));
@@ -306,6 +309,8 @@ fn write_factory(args: &Args) -> Box<Write> {
             let f = OpenOptions::new().write(true)
                                       .create(true)
                                       .truncate(true)
+                                      // remove this unwrap as soon as expect
+                                      // is stabalized
                                       .open(s).unwrap();
             let w = BufWriter::new(f);
             Box::new(w)
@@ -331,6 +336,10 @@ fn main() {
     if args.pretty_fmt { fov.push(Box::new(FormatOutputPrettyFmt)); }
 
     let vi = get_input(&args);
+    if vi.len() < 1 {
+        println!("Error: couldn't parse any input. Try turning --enum off/on.");
+        return;
+    }
     let mut w = write_factory(&args);
 
     for vw in fov {
