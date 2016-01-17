@@ -18,6 +18,9 @@ use ::std::fmt;
 
 use ::num::FromPrimitive;
 
+// this is where the NlMsgFlags enum was generated into but build.rs
+include!(concat!(env!("OUT_DIR"), "/nl_msg_flags.rs"));
+
 // given a cursor, this will tell you how big it is
 fn get_size(cursor: &mut std::io::Cursor<&[u8]>) -> u64 {
     let pos = cursor.position();
@@ -115,91 +118,6 @@ impl ::std::fmt::Display for NlMsgTypeEnum {
 impl Default for NlMsgTypeEnum {
     fn default() -> NlMsgTypeEnum {
         NlMsgTypeEnum::Raw(0)
-    }
-}
-
-#[allow(dead_code, non_camel_case_types)]
-pub enum NlMsgFlags {
-    NLM_F_REQUEST = 0x1,
-    NLM_F_MULTI = 0x2,
-    NLM_F_ACK = 0x4,
-    NLM_F_ECHO = 0x8,
-    NLM_F_DUMP_INTR = 0x10,
-}
-impl ::std::str::FromStr for NlMsgFlags {
-    type Err = ();
-    #[allow(dead_code)]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "NLM_F_REQUEST" => Ok(NlMsgFlags::NLM_F_REQUEST),
-            "NLM_F_MULTI" => Ok(NlMsgFlags::NLM_F_MULTI),
-            "NLM_F_ACK" => Ok(NlMsgFlags::NLM_F_ACK),
-            "NLM_F_ECHO" => Ok(NlMsgFlags::NLM_F_ECHO),
-            "NLM_F_DUMP_INTR" => Ok(NlMsgFlags::NLM_F_DUMP_INTR),
-            _ => Err( () )
-        }
-    }
-}
-impl Default for NlMsgFlags {
-    fn default() -> NlMsgFlags {
-        NlMsgFlags::NLM_F_REQUEST
-    }
-}
-impl ::std::fmt::Display for NlMsgFlags {
-    #[allow(dead_code)]
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match *self {
-            NlMsgFlags::NLM_F_REQUEST => write!(f, "NLM_F_REQUEST"),
-            NlMsgFlags::NLM_F_MULTI => write!(f, "NLM_F_MULTI"),
-            NlMsgFlags::NLM_F_ACK => write!(f, "NLM_F_ACK"),
-            NlMsgFlags::NLM_F_ECHO => write!(f, "NLM_F_ECHO"),
-            NlMsgFlags::NLM_F_DUMP_INTR => write!(f, "NLM_F_DUMP_INTR"),
-        }
-    }
-}
-impl ::num::traits::FromPrimitive for NlMsgFlags {
-    #[allow(dead_code)]
-    fn from_i64(n: i64) -> Option<Self> {
-        match n {
-            0x1 => Some(NlMsgFlags::NLM_F_REQUEST),
-            0x2 => Some(NlMsgFlags::NLM_F_MULTI),
-            0x4 => Some(NlMsgFlags::NLM_F_ACK),
-            0x8 => Some(NlMsgFlags::NLM_F_ECHO),
-            0x10 => Some(NlMsgFlags::NLM_F_DUMP_INTR),
-            _ => None
-        }
-    }
-    #[allow(dead_code)]
-    fn from_u64(n: u64) -> Option<Self> {
-        match n {
-            0x1 => Some(NlMsgFlags::NLM_F_REQUEST),
-            0x2 => Some(NlMsgFlags::NLM_F_MULTI),
-            0x4 => Some(NlMsgFlags::NLM_F_ACK),
-            0x8 => Some(NlMsgFlags::NLM_F_ECHO),
-            0x10 => Some(NlMsgFlags::NLM_F_DUMP_INTR),
-            _ => None
-        }
-    }
-}
-impl NlMsgFlags {
-    fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
-        let mut shift: u32 = 0;
-        let mut result: u32 = 1<<shift;
-        let mut found = false;
-        while result <= NlMsgFlags::NLM_F_DUMP_INTR as u32 {
-            let tmp = result & flags;
-            if tmp > 0 {
-                if found {
-                    try!(write!(f, "|"));
-                }
-                let flag = NlMsgFlags::from_u32(tmp).unwrap();
-                try!(write!(f, "{}", flag));
-                found = true;
-            }
-            shift += 1;
-            result = 1<<shift;
-        }
-        write!(f, "")
     }
 }
 
