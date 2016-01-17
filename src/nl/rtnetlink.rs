@@ -4,6 +4,9 @@ use ::num::FromPrimitive;
 use ::std::fmt;
 use nl::{format_indent, NlMsg};
 
+// this is where the NetDeviceFlags enum was generated into but build.rs
+include!(concat!(env!("OUT_DIR"), "/net_device_flags.rs"));
+
 /* TODO:
 - concistant naming of messages
 - concistant naming of attributes
@@ -60,137 +63,6 @@ macro_rules! impl_pretty_flag_fmt {
         }
     }
 }
-
-#[allow(dead_code, non_camel_case_types)]
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum NetDeviceFlags {
-    IFF_UP = 0x1,
-    IFF_BROADCAST = 0x2,
-    IFF_DEBUG = 0x4,
-    IFF_LOOPBACK = 0x8,
-    IFF_POINTOPOINT = 0x10,
-    IFF_NOTRAILERS = 0x20,
-    IFF_RUNNING = 0x40,
-    IFF_NOARP = 0x80,
-    IFF_PROMISC = 0x100,
-    IFF_ALLMULTI = 0x200,
-    IFF_MASTER = 0x400,
-    IFF_SLAVE = 0x800,
-    IFF_MULTICAST = 0x1000,
-    IFF_PORTSEL = 0x2000,
-    IFF_AUTOMEDIA = 0x4000,
-    IFF_DYNAMIC = 0x8000,
-    IFF_LOWER_UP = 0x10000,
-    IFF_DORMANT = 0x20000,
-    IFF_ECHO = 0x40000,
-}
-impl ::std::str::FromStr for NetDeviceFlags {
-    type Err = ();
-    #[allow(dead_code)]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "IFF_UP" => Ok(NetDeviceFlags::IFF_UP),
-            "IFF_BROADCAST" => Ok(NetDeviceFlags::IFF_BROADCAST),
-            "IFF_DEBUG" => Ok(NetDeviceFlags::IFF_DEBUG),
-            "IFF_LOOPBACK" => Ok(NetDeviceFlags::IFF_LOOPBACK),
-            "IFF_POINTOPOINT" => Ok(NetDeviceFlags::IFF_POINTOPOINT),
-            "IFF_NOTRAILERS" => Ok(NetDeviceFlags::IFF_NOTRAILERS),
-            "IFF_RUNNING" => Ok(NetDeviceFlags::IFF_RUNNING),
-            "IFF_NOARP" => Ok(NetDeviceFlags::IFF_NOARP),
-            "IFF_PROMISC" => Ok(NetDeviceFlags::IFF_PROMISC),
-            "IFF_ALLMULTI" => Ok(NetDeviceFlags::IFF_ALLMULTI),
-            "IFF_MASTER" => Ok(NetDeviceFlags::IFF_MASTER),
-            "IFF_SLAVE" => Ok(NetDeviceFlags::IFF_SLAVE),
-            "IFF_MULTICAST" => Ok(NetDeviceFlags::IFF_MULTICAST),
-            "IFF_PORTSEL" => Ok(NetDeviceFlags::IFF_PORTSEL),
-            "IFF_AUTOMEDIA" => Ok(NetDeviceFlags::IFF_AUTOMEDIA),
-            "IFF_DYNAMIC" => Ok(NetDeviceFlags::IFF_DYNAMIC),
-            "IFF_LOWER_UP" => Ok(NetDeviceFlags::IFF_LOWER_UP),
-            "IFF_DORMANT" => Ok(NetDeviceFlags::IFF_DORMANT),
-            "IFF_ECHO" => Ok(NetDeviceFlags::IFF_ECHO),
-            _ => Err( () )
-        }
-    }
-}
-impl ::std::fmt::Display for NetDeviceFlags {
-    #[allow(dead_code)]
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match *self {
-            NetDeviceFlags::IFF_UP => write!(f, "IFF_UP"),
-            NetDeviceFlags::IFF_BROADCAST => write!(f, "IFF_BROADCAST"),
-            NetDeviceFlags::IFF_DEBUG => write!(f, "IFF_DEBUG"),
-            NetDeviceFlags::IFF_LOOPBACK => write!(f, "IFF_LOOPBACK"),
-            NetDeviceFlags::IFF_POINTOPOINT => write!(f, "IFF_POINTOPOINT"),
-            NetDeviceFlags::IFF_NOTRAILERS => write!(f, "IFF_NOTRAILERS"),
-            NetDeviceFlags::IFF_RUNNING => write!(f, "IFF_RUNNING"),
-            NetDeviceFlags::IFF_NOARP => write!(f, "IFF_NOARP"),
-            NetDeviceFlags::IFF_PROMISC => write!(f, "IFF_PROMISC"),
-            NetDeviceFlags::IFF_ALLMULTI => write!(f, "IFF_ALLMULTI"),
-            NetDeviceFlags::IFF_MASTER => write!(f, "IFF_MASTER"),
-            NetDeviceFlags::IFF_SLAVE => write!(f, "IFF_SLAVE"),
-            NetDeviceFlags::IFF_MULTICAST => write!(f, "IFF_MULTICAST"),
-            NetDeviceFlags::IFF_PORTSEL => write!(f, "IFF_PORTSEL"),
-            NetDeviceFlags::IFF_AUTOMEDIA => write!(f, "IFF_AUTOMEDIA"),
-            NetDeviceFlags::IFF_DYNAMIC => write!(f, "IFF_DYNAMIC"),
-            NetDeviceFlags::IFF_LOWER_UP => write!(f, "IFF_LOWER_UP"),
-            NetDeviceFlags::IFF_DORMANT => write!(f, "IFF_DORMANT"),
-            NetDeviceFlags::IFF_ECHO => write!(f, "IFF_ECHO"),
-        }
-    }
-}
-impl ::num::traits::FromPrimitive for NetDeviceFlags {
-    #[allow(dead_code)]
-    fn from_i64(n: i64) -> Option<Self> {
-        match n {
-            0x1 => Some(NetDeviceFlags::IFF_UP),
-            0x2 => Some(NetDeviceFlags::IFF_BROADCAST),
-            0x4 => Some(NetDeviceFlags::IFF_DEBUG),
-            0x8 => Some(NetDeviceFlags::IFF_LOOPBACK),
-            0x10 => Some(NetDeviceFlags::IFF_POINTOPOINT),
-            0x20 => Some(NetDeviceFlags::IFF_NOTRAILERS),
-            0x40 => Some(NetDeviceFlags::IFF_RUNNING),
-            0x80 => Some(NetDeviceFlags::IFF_NOARP),
-            0x100 => Some(NetDeviceFlags::IFF_PROMISC),
-            0x200 => Some(NetDeviceFlags::IFF_ALLMULTI),
-            0x400 => Some(NetDeviceFlags::IFF_MASTER),
-            0x800 => Some(NetDeviceFlags::IFF_SLAVE),
-            0x1000 => Some(NetDeviceFlags::IFF_MULTICAST),
-            0x2000 => Some(NetDeviceFlags::IFF_PORTSEL),
-            0x4000 => Some(NetDeviceFlags::IFF_AUTOMEDIA),
-            0x8000 => Some(NetDeviceFlags::IFF_DYNAMIC),
-            0x10000 => Some(NetDeviceFlags::IFF_LOWER_UP),
-            0x20000 => Some(NetDeviceFlags::IFF_DORMANT),
-            0x40000 => Some(NetDeviceFlags::IFF_ECHO),
-            _ => None
-        }
-    }
-    #[allow(dead_code)]
-    fn from_u64(n: u64) -> Option<Self> {
-        match n {
-            0x1 => Some(NetDeviceFlags::IFF_UP),
-            0x2 => Some(NetDeviceFlags::IFF_BROADCAST),
-            0x4 => Some(NetDeviceFlags::IFF_DEBUG),
-            0x8 => Some(NetDeviceFlags::IFF_LOOPBACK),
-            0x10 => Some(NetDeviceFlags::IFF_POINTOPOINT),
-            0x20 => Some(NetDeviceFlags::IFF_NOTRAILERS),
-            0x40 => Some(NetDeviceFlags::IFF_RUNNING),
-            0x80 => Some(NetDeviceFlags::IFF_NOARP),
-            0x100 => Some(NetDeviceFlags::IFF_PROMISC),
-            0x200 => Some(NetDeviceFlags::IFF_ALLMULTI),
-            0x400 => Some(NetDeviceFlags::IFF_MASTER),
-            0x800 => Some(NetDeviceFlags::IFF_SLAVE),
-            0x1000 => Some(NetDeviceFlags::IFF_MULTICAST),
-            0x2000 => Some(NetDeviceFlags::IFF_PORTSEL),
-            0x4000 => Some(NetDeviceFlags::IFF_AUTOMEDIA),
-            0x8000 => Some(NetDeviceFlags::IFF_DYNAMIC),
-            0x10000 => Some(NetDeviceFlags::IFF_LOWER_UP),
-            0x20000 => Some(NetDeviceFlags::IFF_DORMANT),
-            0x40000 => Some(NetDeviceFlags::IFF_ECHO),
-            _ => None
-        }
-    }
-}
-impl_pretty_flag_fmt!(NetDeviceFlags, NetDeviceFlags::IFF_ECHO, NetDeviceFlags::from_u32);
 
 #[allow(dead_code, non_camel_case_types)]
 #[derive(Debug, Copy, Clone)]
