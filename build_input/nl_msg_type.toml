@@ -1,0 +1,9 @@
+[rust-enum-derive]
+name = "NlMsgType"
+derive = "Debug, PartialEq, Copy, Clone"
+define = true
+default = true
+display = true
+fromprimative = true
+fromstr = true
+# pretty_fmt = true
