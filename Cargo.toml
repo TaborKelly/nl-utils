@@ -2,6 +2,7 @@
 name = "nl-utils"
 version = "0.1.0"
 authors = ["Tabor Kelly <taborkelly@gmail.com>"]
+build = "build.rs"
 
 [dependencies]
 getopts = "0.2"
