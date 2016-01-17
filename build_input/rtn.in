@@ -1,3 +1,5 @@
+/* rtm_type */
+
 enum {
 	RTN_UNSPEC,
 	RTN_UNICAST,		/* Gateway or direct route	*/

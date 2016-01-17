@@ -1,0 +1,27 @@
+/* rtm_protocol */
+
+#define RTPROT_UNSPEC	0
+#define RTPROT_REDIRECT	1	/* Route installed by ICMP redirects;
+				   not used by current IPv4 */
+#define RTPROT_KERNEL	2	/* Route installed by kernel		*/
+#define RTPROT_BOOT	3	/* Route installed during boot		*/
+#define RTPROT_STATIC	4	/* Route installed by administrator	*/
+
+/* Values of protocol >= RTPROT_STATIC are not interpreted by kernel;
+   they are just passed from user and back as is.
+   It will be used by hypothetical multiple routing daemons.
+   Note that protocol values should be standardized in order to
+   avoid conflicts.
+ */
+
+#define RTPROT_GATED	8	/* Apparently, GateD */
+#define RTPROT_RA	9	/* RDISC/ND router advertisements */
+#define RTPROT_MRT	10	/* Merit MRT */
+#define RTPROT_ZEBRA	11	/* Zebra */
+#define RTPROT_BIRD	12	/* BIRD */
+#define RTPROT_DNROUTED	13	/* DECnet routing daemon */
+#define RTPROT_XORP	14	/* XORP */
+#define RTPROT_NTK	15	/* Netsukuku */
+#define RTPROT_DHCP	16      /* DHCP client */
+#define RTPROT_MROUTED	17      /* Multicast daemon */
+#define RTPROT_BABEL	42      /* Babel daemon */
