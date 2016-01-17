@@ -1,5 +1,5 @@
 [rust-enum-derive]
-name = "NdState"
+name = "NdFlags"
 # derive = "Debug, Copy, Clone"
 define = true
 default = true
