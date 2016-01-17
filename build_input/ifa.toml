@@ -1,0 +1,10 @@
+[rust-enum-derive]
+name = "Ifa"
+derive = "Debug, Copy, Clone"
+# define = true
+default = true
+display = true
+fromprimative = true
+fromstr = true
+# hex = true
+# pretty_fmt = true

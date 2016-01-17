@@ -10,6 +10,8 @@ include!(concat!(env!("OUT_DIR"), "/net_device_flags.rs"));
 include!(concat!(env!("OUT_DIR"), "/address_family.rs"));
 // this is where the IfaFlags enum was generated into but build.rs
 include!(concat!(env!("OUT_DIR"), "/ifa_flags.rs"));
+// this is where the Ifa enum was generated into but build.rs
+include!(concat!(env!("OUT_DIR"), "/ifa.rs"));
 
 /* TODO:
 - concistant naming of messages
@@ -395,91 +397,6 @@ impl ::std::fmt::Display for Ifinfomsg {
     #[allow(dead_code)]
     fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
         self.pretty_fmt(f, 0)
-    }
-}
-
-#[allow(dead_code, non_camel_case_types)]
-#[derive(Debug, Copy, Clone)]
-pub enum Ifa {
-    IFA_UNSPEC = 0,
-    IFA_ADDRESS = 1,
-    IFA_LOCAL = 2,
-    IFA_LABEL = 3,
-    IFA_BROADCAST = 4,
-    IFA_ANYCAST = 5,
-    IFA_CACHEINFO = 6,
-    IFA_MULTICAST = 7,
-    IFA_FLAGS = 8,
-}
-impl ::std::str::FromStr for Ifa {
-    type Err = ();
-    #[allow(dead_code)]
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "IFA_UNSPEC" => Ok(Ifa::IFA_UNSPEC),
-            "IFA_ADDRESS" => Ok(Ifa::IFA_ADDRESS),
-            "IFA_LOCAL" => Ok(Ifa::IFA_LOCAL),
-            "IFA_LABEL" => Ok(Ifa::IFA_LABEL),
-            "IFA_BROADCAST" => Ok(Ifa::IFA_BROADCAST),
-            "IFA_ANYCAST" => Ok(Ifa::IFA_ANYCAST),
-            "IFA_CACHEINFO" => Ok(Ifa::IFA_CACHEINFO),
-            "IFA_MULTICAST" => Ok(Ifa::IFA_MULTICAST),
-            "IFA_FLAGS" => Ok(Ifa::IFA_FLAGS),
-            _ => Err( () )
-        }
-    }
-}
-impl ::std::fmt::Display for Ifa {
-    #[allow(dead_code)]
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        match *self {
-            Ifa::IFA_UNSPEC => write!(f, "IFA_UNSPEC"),
-            Ifa::IFA_ADDRESS => write!(f, "IFA_ADDRESS"),
-            Ifa::IFA_LOCAL => write!(f, "IFA_LOCAL"),
-            Ifa::IFA_LABEL => write!(f, "IFA_LABEL"),
-            Ifa::IFA_BROADCAST => write!(f, "IFA_BROADCAST"),
-            Ifa::IFA_ANYCAST => write!(f, "IFA_ANYCAST"),
-            Ifa::IFA_CACHEINFO => write!(f, "IFA_CACHEINFO"),
-            Ifa::IFA_MULTICAST => write!(f, "IFA_MULTICAST"),
-            Ifa::IFA_FLAGS => write!(f, "IFA_FLAGS"),
-        }
-    }
-}
-impl ::num::traits::FromPrimitive for Ifa {
-    #[allow(dead_code)]
-    fn from_i64(n: i64) -> Option<Self> {
-        match n {
-            0 => Some(Ifa::IFA_UNSPEC),
-            1 => Some(Ifa::IFA_ADDRESS),
-            2 => Some(Ifa::IFA_LOCAL),
-            3 => Some(Ifa::IFA_LABEL),
-            4 => Some(Ifa::IFA_BROADCAST),
-            5 => Some(Ifa::IFA_ANYCAST),
-            6 => Some(Ifa::IFA_CACHEINFO),
-            7 => Some(Ifa::IFA_MULTICAST),
-            8 => Some(Ifa::IFA_FLAGS),
-            _ => None
-        }
-    }
-    #[allow(dead_code)]
-    fn from_u64(n: u64) -> Option<Self> {
-        match n {
-            0 => Some(Ifa::IFA_UNSPEC),
-            1 => Some(Ifa::IFA_ADDRESS),
-            2 => Some(Ifa::IFA_LOCAL),
-            3 => Some(Ifa::IFA_LABEL),
-            4 => Some(Ifa::IFA_BROADCAST),
-            5 => Some(Ifa::IFA_ANYCAST),
-            6 => Some(Ifa::IFA_CACHEINFO),
-            7 => Some(Ifa::IFA_MULTICAST),
-            8 => Some(Ifa::IFA_FLAGS),
-            _ => None
-        }
-    }
-}
-impl Default for Ifa {
-    fn default() -> Ifa {
-        Ifa::IFA_UNSPEC
     }
 }
 
