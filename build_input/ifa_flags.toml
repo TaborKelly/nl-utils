@@ -1,0 +1,10 @@
+[rust-enum-derive]
+name = "IfaFlags"
+# derive = "Debug, PartialEq, Copy, Clone"
+define = true
+default = true
+display = true
+fromprimative = true
+fromstr = true
+hex = true
+pretty_fmt = true
