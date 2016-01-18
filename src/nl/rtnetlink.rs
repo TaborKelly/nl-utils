@@ -60,40 +60,6 @@ macro_rules! read_and_handle_error {
     }}
 }
 
-// A macro to implement pretty_fmt() for an enum
-// $t - The enum type
-// $v - The largest value in the enum
-// $m - The method to call to get the flag from a u32
-// TODO: figure out how to eliminate $m and just use $t::from_u32().
-//       or possilby replace it with generated code
-macro_rules! impl_pretty_flag_fmt {
-    ($t:path, $v:path, $m:path) => {
-        impl $t {
-            fn pretty_fmt(f: &mut ::std::fmt::Formatter, flags: u32) -> ::std::fmt::Result {
-                let mut shift: u32 = 0;
-                let mut result: u32 = 1<<shift;
-                let mut found = false;
-                while result <= $v as u32 {
-                    let tmp = result & flags;
-                    if tmp > 0 {
-                        if found {
-                            try!(write!(f, "|"));
-                        }
-                        let flag = $m(tmp).unwrap();
-                        try!(write!(f, "{}", flag));
-                        found = true;
-                    }
-
-                    // keep looking
-                    shift += 1;
-                    result = 1<<shift;
-                }
-                write!(f, "")
-            }
-        }
-    }
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct Rtattr<T> {
      // the length originally encoded in the netlink which includes rta_len,
