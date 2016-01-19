@@ -3,6 +3,7 @@ extern crate getopts;
 use getopts::Options;
 use std::env;
 use std::str::FromStr;
+use std::io::prelude::*;
 
 #[macro_use]
 extern crate log;
@@ -47,7 +48,7 @@ fn parse_options() -> Args {
     }
     a.input = matches.opt_str("i");
     if a.input.is_none() {
-        println!("ERROR: we need an input file.");
+        error!("we need an input file");
         print_usage(&program, opts);
         std::process::exit(0);
     }
@@ -66,6 +67,7 @@ fn print_usage(program: &str, opts: Options) {
 }
 
 fn print_packets(args: &Args) {
+    debug!("print_packets({:?})", args);
     // open a new capture from the test.pcap file we wrote to above
     // let path = args.input.unwrap();
 	let mut cap = match args.input {
@@ -76,21 +78,43 @@ fn print_packets(args: &Args) {
     let mut p: i32 = 0;
     while let Some(packet) = cap.next() {
         p = p + 1;
-        let nlmsg = nl::NlMsg::read(packet.data);
+        let vec = nl::NlMsg::read(packet.data);
 
-        match args.netlink_family {
-            Some(ref f) => if *f != nlmsg.netlink_family { continue },
-            None => (),
-        };
+        let mut first = true;
+        for m in vec.iter() {
+            // Skip these messages if this isn't the family that we are looking for
+            match args.netlink_family {
+                Some(ref f) => if *f != m.netlink_family { continue },
+                None => (),
+            };
+            if first {
+                print!("packet[{}] = {{ ", p);
+                first = false;
+            }
+            else {
+                println!(",");
+            }
 
-        println!("packet[{}] = {}", p, nlmsg);
+            //m.pretty_fmt(::std::fmt::Display::fmt, 4);
+            // w.write(m.pretty_fmt(w, 4);
+            print!("{}", m);
+            /*
+            try!(a.pretty_fmt(f, indent+1));
+            if count < self.ifi_attr.len() {
+                try!(write!(f, ",\n{}", i_s_p));
+            }
+            count = count + 1;*/
+        }
+        if !first {
+            println!(" }}");
+        }
     }
 }
 
 fn main() {
     env_logger::init().unwrap();
+    debug!("main()");
     let args: Args = parse_options();
-    debug!("args = {:?}", args);
 
     print_packets(&args);
 }
