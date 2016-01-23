@@ -5,6 +5,6 @@ derive = "Debug, Copy, Clone, PartialEq"
 default = true
 display = true
 fromprimative = true
-fromstr = true
+# fromstr = true
 # hex = true
 # pretty_fmt = true

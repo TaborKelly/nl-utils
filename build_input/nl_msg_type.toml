@@ -5,5 +5,5 @@ define = true
 default = true
 display = true
 fromprimative = true
-fromstr = true
+# fromstr = true
 # pretty_fmt = true
