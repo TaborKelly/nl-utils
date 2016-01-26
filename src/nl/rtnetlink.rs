@@ -1,4 +1,6 @@
-use ::std::io::{Cursor};
+use ::std::io;
+use ::std::io::prelude::*;
+use ::std::io::{Cursor, Result};
 use ::byteorder::{NativeEndian, ReadBytesExt};
 use ::num::FromPrimitive;
 use ::std::fmt;
@@ -47,19 +49,6 @@ include!(concat!(env!("OUT_DIR"), "/rtnetlink", "/nr_msg_type.rs"));
 - more robustness for Rtprot? Theoretically users could use other values.
 */
 
-// A macro for reading and returning None on error.
-// r = an expresssion that will return/evaluate to a Result
-// s = where to unwrap the result to if it isn't an error
-macro_rules! read_and_handle_error {
-    ($s:expr, $r:expr) => {{
-        let tmp = $r;
-        if tmp.is_err() {
-            return None;
-        }
-        $s = tmp.unwrap();
-    }}
-}
-
 #[derive(Debug, Default, Clone)]
 pub struct Rtattr<T> {
      // the length originally encoded in the netlink which includes rta_len,
@@ -70,22 +59,31 @@ pub struct Rtattr<T> {
 }
 impl <T: Default + ::std::fmt::Display + ::num::traits::FromPrimitive> Rtattr<T> {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<Rtattr<T>> {
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> io::Result<Rtattr<T>> {
         let mut s = Rtattr::default();
-        read_and_handle_error!(s.rta_len, cursor.read_u16::<NativeEndian>());
-        let rta_type: u16;
-        read_and_handle_error!(rta_type, cursor.read_u16::<NativeEndian>());
-        s.rta_type = T::from_u16(rta_type).unwrap();
+        s.rta_len = try!(cursor.read_u16::<NativeEndian>());
+        let rta_type_u16: u16;
+        rta_type_u16 = try!(cursor.read_u16::<NativeEndian>());
+        let rta_type = T::from_u16(rta_type_u16);
+        if rta_type.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("rta_type = {}", rta_type_u16));
+            return Err(e);
+        }
+        s.rta_type = rta_type.unwrap();
+        if s.rta_len < 4 {
+            let e = io::Error::new(io::ErrorKind::Other, format!("rta_len = {}", s.rta_len));
+            return Err(e);
+        }
         // sizeof(rta_len) + sizeof(rta_type) = 4
         let payload_len: usize = (s.rta_len - 4) as usize;
         let mut vec: Vec<u8> = Vec::with_capacity(payload_len);
         for _ in 0..payload_len {
-            let a = cursor.read_u8().unwrap();
+            let a = try!(cursor.read_u8());
             vec.push(a);
         }
         s.rta_value = vec;
         NlMsg::nlmsg_align(cursor);
-        Some(s)
+        return Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
@@ -116,24 +114,29 @@ pub struct Ifinfomsg {
 }
 impl Ifinfomsg {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Ifinfomsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> io::Result<Ifinfomsg> {
         let mut s = Ifinfomsg::default();
 
-        let family: u8;
-        read_and_handle_error!(family, cursor.read_u8());
-        s.ifi_family = AddressFamily::from_u8(family).unwrap();
+        let family_u8: u8;
+        family_u8 = try!(cursor.read_u8());
+        let family = AddressFamily::from_u8(family_u8);
+        if family.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("family_u8 = {}", family_u8));
+            return Err(e);
+        }
+        s.ifi_family = family.unwrap();
         let mut _ifi_pad: u8 = 0;
-        read_and_handle_error!(_ifi_pad, cursor.read_u8());
-        read_and_handle_error!(s.ifi_type, cursor.read_u16::<NativeEndian>());
-        read_and_handle_error!(s.ifi_index, cursor.read_i32::<NativeEndian>());
-        read_and_handle_error!(s.ifi_flags, cursor.read_u32::<NativeEndian>());
-        read_and_handle_error!(s.ifi_change, cursor.read_u32::<NativeEndian>());
+        _ifi_pad = try!(cursor.read_u8());
+        s.ifi_type = try!(cursor.read_u16::<NativeEndian>());
+        s.ifi_index = try!(cursor.read_i32::<NativeEndian>());
+        s.ifi_flags = try!(cursor.read_u32::<NativeEndian>());
+        s.ifi_change = try!(cursor.read_u32::<NativeEndian>());
         while (cursor.position() as usize) < nlmsg_len {
-            let attr = Rtattr::<Ifla>::read(cursor).unwrap();
+            let attr = try!(Rtattr::<Ifla>::read(cursor));
             s.ifi_attr.push(attr);
         }
 
-        Some(s)
+        Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
@@ -176,22 +179,27 @@ pub struct Ifaddrmsg {
 }
 impl Ifaddrmsg {
     // Ifaddrmsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Ifaddrmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> io::Result<Ifaddrmsg> {
         let mut s = Ifaddrmsg::default();
 
-        let family: u8;
-        read_and_handle_error!(family, cursor.read_u8());
-        s.ifa_family = AddressFamily::from_u8(family).unwrap();
-        read_and_handle_error!(s.ifa_prefixlen, cursor.read_u8());
-        read_and_handle_error!(s.ifa_flags, cursor.read_u8());
-        read_and_handle_error!(s.ifa_scope, cursor.read_u8());
-        read_and_handle_error!(s.ifa_index, cursor.read_u32::<NativeEndian>());
+        let family_u8: u8;
+        family_u8 = try!(cursor.read_u8());
+        let family = AddressFamily::from_u8(family_u8);
+        if family.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("family_u8 = {}", family_u8));
+            return Err(e);
+        }
+        s.ifa_family = family.unwrap();
+        s.ifa_prefixlen = try!(cursor.read_u8());
+        s.ifa_flags = try!(cursor.read_u8());
+        s.ifa_scope = try!(cursor.read_u8());
+        s.ifa_index = try!(cursor.read_u32::<NativeEndian>());
         while (cursor.position() as usize) < nlmsg_len {
-            let attr = Rtattr::<Ifa>::read(cursor).unwrap();
+            let attr = try!(Rtattr::<Ifa>::read(cursor));
             s.ifa_attr.push(attr);
         }
 
-        Some(s)
+        Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
@@ -260,33 +268,50 @@ pub struct Rtmsg {
 }
 impl Rtmsg {
     // Ifaddrmsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Rtmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> io::Result<Rtmsg> {
         let mut s = Rtmsg::default();
 
-        let family: u8;
-        read_and_handle_error!(family, cursor.read_u8());
-        s.rtm_family = AddressFamily::from_u8(family).unwrap();
-        read_and_handle_error!(s.rtm_dst_len, cursor.read_u8());
-        read_and_handle_error!(s.rtm_src_len, cursor.read_u8());
-        read_and_handle_error!(s.rtm_tos, cursor.read_u8());
+        let family_u8: u8;
+        family_u8 = try!(cursor.read_u8());
+        let family = AddressFamily::from_u8(family_u8);
+        if family.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("family_u8 = {}", family_u8));
+            return Err(e);
+        }
+        s.rtm_family = family.unwrap();
+        s.rtm_dst_len = try!(cursor.read_u8());
+        s.rtm_src_len = try!(cursor.read_u8());
+        s.rtm_tos = try!(cursor.read_u8());
 
-        read_and_handle_error!(s.rtm_table, cursor.read_u8());
-        let rtm_protocol: u8;
-        read_and_handle_error!(rtm_protocol, cursor.read_u8());
-        s.rtm_protocol = Rtprot::from_u8(rtm_protocol).unwrap();
-        read_and_handle_error!(s.rtm_scope, cursor.read_u8());
-        let rtm_type: u8;
-        read_and_handle_error!(rtm_type, cursor.read_u8());
-        s.rtm_type = Rtn::from_u8(rtm_type).unwrap();
+        s.rtm_table = try!(cursor.read_u8());
+        let rtm_protocol_u8: u8;
+        rtm_protocol_u8 = try!(cursor.read_u8());
+        let rtm_protocol = Rtprot::from_u8(rtm_protocol_u8);
+        if rtm_protocol.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("rtm_protocol = {}",
+                                                                 rtm_protocol_u8));
+            return Err(e);
+        }
+        s.rtm_protocol = rtm_protocol.unwrap();
+        s.rtm_scope = try!(cursor.read_u8());
+        let rtm_type_u8: u8;
+        rtm_type_u8 = try!(cursor.read_u8());
+        let rtm_type = Rtn::from_u8(rtm_type_u8);
+        if rtm_type.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("rtm_type = {}",
+                                                                 rtm_type_u8));
+            return Err(e);
+        }
+        s.rtm_type = rtm_type.unwrap();
 
-        read_and_handle_error!(s.rtm_flags, cursor.read_u32::<NativeEndian>());
+        s.rtm_flags = try!(cursor.read_u32::<NativeEndian>());
 
         while (cursor.position() as usize) < nlmsg_len {
-            let attr = Rtattr::<RtmAttr>::read(cursor).unwrap();
+            let attr = try!(Rtattr::<RtmAttr>::read(cursor));
             s.rtm_attr.push(attr);
         }
 
-        Some(s)
+        Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
@@ -333,15 +358,15 @@ pub struct NdaCacheinfo {
 }
 impl NdaCacheinfo {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>) -> Option<NdaCacheinfo> {
+    pub fn read(cursor: &mut Cursor<&[u8]>) -> io::Result<NdaCacheinfo> {
         let mut s = NdaCacheinfo::default();
 
-        read_and_handle_error!(s.ndm_confirmed, cursor.read_u32::<NativeEndian>());
-        read_and_handle_error!(s.ndm_used, cursor.read_u32::<NativeEndian>());
-        read_and_handle_error!(s.ndm_updated, cursor.read_u32::<NativeEndian>());
-        read_and_handle_error!(s.ndm_flags, cursor.read_u32::<NativeEndian>());
+        s.ndm_confirmed = try!(cursor.read_u32::<NativeEndian>());
+        s.ndm_used = try!(cursor.read_u32::<NativeEndian>());
+        s.ndm_updated = try!(cursor.read_u32::<NativeEndian>());
+        s.ndm_flags = try!(cursor.read_u32::<NativeEndian>());
 
-        Some(s)
+        Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let indent = format_indent(indent);
@@ -374,31 +399,37 @@ pub struct Ndmsg {
 }
 impl Ndmsg {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Ndmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> io::Result<Ndmsg> {
         let mut s = Ndmsg::default();
 
-        read_and_handle_error!(s.ndm_family, cursor.read_u8());
+        s.ndm_family = try!(cursor.read_u8());
         let mut _ndm_pad_u8: u8 = 0;
-        read_and_handle_error!(_ndm_pad_u8, cursor.read_u8());
+        _ndm_pad_u8 = try!(cursor.read_u8());
         let mut _ndm_pad_u16: u16 = 0;
-        read_and_handle_error!(_ndm_pad_u16, cursor.read_u16::<NativeEndian>());
-        read_and_handle_error!(s.ndm_ifindex, cursor.read_i32::<NativeEndian>());
-        read_and_handle_error!(s.ndm_state, cursor.read_u16::<NativeEndian>());
-        read_and_handle_error!(s.ndm_flags, cursor.read_u8());
-        let ndm_type: u8;
-        read_and_handle_error!(ndm_type, cursor.read_u8());
-        s.ndm_type = NdAttr::from_u8(ndm_type).unwrap();
+        _ndm_pad_u16 = try!(cursor.read_u16::<NativeEndian>());
+        s.ndm_ifindex = try!(cursor.read_i32::<NativeEndian>());
+        s.ndm_state = try!(cursor.read_u16::<NativeEndian>());
+        s.ndm_flags = try!(cursor.read_u8());
+        let ndm_type_u8: u8;
+        ndm_type_u8 = try!(cursor.read_u8());
+        let ndm_type = NdAttr::from_u8(ndm_type_u8);
+        if ndm_type.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("ndm_type = {}", ndm_type_u8));
+            return Err(e);
+        }
+        s.ndm_type = ndm_type.unwrap();
 
         if s.ndm_type == NdAttr::NDA_CACHEINFO {
-            s.ndm_cacheinfo = NdaCacheinfo::read(cursor);
+            let ndm_cacheinfo = try!(NdaCacheinfo::read(cursor));
+            s.ndm_cacheinfo = Some(ndm_cacheinfo);
         }
 
         while (cursor.position() as usize) < nlmsg_len {
-            let attr = Rtattr::<NdAttr>::read(cursor).unwrap();
+            let attr = try!(Rtattr::<NdAttr>::read(cursor));
             s.ndm_attr.push(attr);
         }
 
-        Some(s)
+        Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);
@@ -448,26 +479,26 @@ pub struct Tcmsg {
 }
 impl Tcmsg {
     // Ifinfomsg header is native endian
-    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> Option<Tcmsg> {
+    pub fn read(cursor: &mut Cursor<&[u8]>, nlmsg_len: usize) -> io::Result<Tcmsg> {
         let mut s = Tcmsg::default();
 
-        read_and_handle_error!(s.tcm_family, cursor.read_u8());
+        s.tcm_family = try!(cursor.read_u8());
         let mut _tcm_pad_u8: u8 = 0;
-        read_and_handle_error!(_tcm_pad_u8, cursor.read_u8());
+        _tcm_pad_u8 = try!(cursor.read_u8());
         let mut _tcm_pad_u16: u16 = 0;
-        read_and_handle_error!(_tcm_pad_u16, cursor.read_u16::<NativeEndian>());
-        read_and_handle_error!(s.tcm_ifindex, cursor.read_i32::<NativeEndian>());
-        read_and_handle_error!(s.tcm_handle, cursor.read_u32::<NativeEndian>());
-        read_and_handle_error!(s.tcm_parent, cursor.read_u32::<NativeEndian>());
-        read_and_handle_error!(s.tcm_info, cursor.read_u32::<NativeEndian>());
+        _tcm_pad_u16 = try!(cursor.read_u16::<NativeEndian>());
+        s.tcm_ifindex = try!(cursor.read_i32::<NativeEndian>());
+        s.tcm_handle = try!(cursor.read_u32::<NativeEndian>());
+        s.tcm_parent = try!(cursor.read_u32::<NativeEndian>());
+        s.tcm_info = try!(cursor.read_u32::<NativeEndian>());
 
         // TODO: revisit. Move into Rtattr?
         while (cursor.position() as usize) < nlmsg_len {
-            let attr = Rtattr::<TcAttr>::read(cursor).unwrap();
+            let attr = try!(Rtattr::<TcAttr>::read(cursor));
             s.tcm_attr.push(attr);
         }
 
-        Some(s)
+        Ok(s)
     }
     pub fn pretty_fmt(&self, f: &mut fmt::Formatter, indent: i32) -> fmt::Result {
         let i_s = format_indent(indent);

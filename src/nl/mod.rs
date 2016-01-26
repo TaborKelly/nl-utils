@@ -16,7 +16,6 @@ use ::std::fmt;
 use ::std::io;
 use ::std::io::prelude::*;
 use ::std::io::{Cursor, SeekFrom};
-use ::byteorder;
 use ::byteorder::{BigEndian, NativeEndian, ReadBytesExt};
 
 use ::num::FromPrimitive;
@@ -40,8 +39,8 @@ fn format_indent(indent: i32) -> String {
     s
 }
 
-// Cooked SLL header is big endian (network byte order)
-// http://www.tcpdump.org/linktypes/LINKTYPE_LINUX_SLL.html
+/// Cooked SLL header is big endian (network byte order)
+/// http://www.tcpdump.org/linktypes/LINKTYPE_LINUX_SLL.html
 #[derive(Debug)]
 pub struct CookedHeader {
     header_type: u16,
@@ -67,7 +66,7 @@ impl fmt::Display for CookedHeader {
 }
 impl CookedHeader {
     // Netlink header is native endian
-    pub fn read(cursor: &mut std::io::Cursor<&[u8]>) -> Result<CookedHeader, byteorder::Error> {
+    pub fn read(cursor: &mut std::io::Cursor<&[u8]>) -> io::Result<CookedHeader> {
         debug!("CookedHeader::read()");
         let mut c = CookedHeader::default();
 
@@ -77,9 +76,14 @@ impl CookedHeader {
         for a in c.address.iter_mut() {
             *a = try!(cursor.read_u8());
         }
-        let family = try!(cursor.read_u16::<BigEndian>());
-        // c.netlink_family = try!(netlink::NetlinkFamily::from_u16(family));
-        c.netlink_family = netlink::NetlinkFamily::from_u16(family).unwrap();
+        let netlink_family_u16 = try!(cursor.read_u16::<BigEndian>());
+        let netlink_family = netlink::NetlinkFamily::from_u16(netlink_family_u16);
+        if netlink_family.is_none() {
+            let e = io::Error::new(io::ErrorKind::Other, format!("netlink_family = {}",
+                                                                  netlink_family_u16));
+            return Err(e);
+        }
+        c.netlink_family = netlink_family.unwrap();
         assert!(cursor.position() as usize == COOKED_HEADER_SIZE);
 
         Ok(c)
@@ -143,7 +147,7 @@ impl Nlmsghdr {
     // Netlink header is native endian
     // TODO: return Result
     pub fn read(cursor: &mut std::io::Cursor<&[u8]>,
-               family: netlink::NetlinkFamily) -> Result<Nlmsghdr, byteorder::Error> {
+                family: netlink::NetlinkFamily) -> io::Result<Nlmsghdr> {
         debug!("Nlmsghdr::read(..., {})", family);
         let mut s = Nlmsghdr::default();
 
@@ -160,8 +164,7 @@ impl Nlmsghdr {
                         let e = io::Error::new(io::ErrorKind::Other,
                                                format!("nlmsg_type of {} doesn't make sense for NETLINK_ROUTE",
                                                        nlmsg_type));
-                        let be = byteorder::Error::Io(e);
-                        return Err(be);
+                        return Err(e);
                     }
                     NlMsgTypeEnum::NrMsgType(r.unwrap())
                 }
@@ -213,8 +216,8 @@ impl NlMsgEnum {
                    *u == rtnetlink::NrMsgType::RTM_GETLINK {
                     let o = rtnetlink::Ifinfomsg::read(cursor, nlmsg_len);
                     match o {
-                        Some(msg) => NlMsgEnum::Ifinfomsg(msg),
-                        None => NlMsgEnum::MalfromedPacket
+                        Ok(msg) => NlMsgEnum::Ifinfomsg(msg),
+                        _ => NlMsgEnum::MalfromedPacket
                     }
                 }
                 else if *u == rtnetlink::NrMsgType::RTM_NEWADDR ||
@@ -222,8 +225,8 @@ impl NlMsgEnum {
                    *u == rtnetlink::NrMsgType::RTM_GETADDR {
                     let o = rtnetlink::Ifaddrmsg::read(cursor, nlmsg_len);
                     match o {
-                        Some(msg) => NlMsgEnum::Ifaddrmsg(msg),
-                        None => NlMsgEnum::MalfromedPacket
+                        Ok(msg) => NlMsgEnum::Ifaddrmsg(msg),
+                        _ => NlMsgEnum::MalfromedPacket
                     }
                 }
                 else if *u == rtnetlink::NrMsgType::RTM_NEWROUTE ||
@@ -231,8 +234,8 @@ impl NlMsgEnum {
                    *u == rtnetlink::NrMsgType::RTM_GETROUTE {
                     let o = rtnetlink::Rtmsg::read(cursor, nlmsg_len);
                     match o {
-                        Some(msg) => NlMsgEnum::Rtmsg(msg),
-                        None => NlMsgEnum::MalfromedPacket
+                        Ok(msg) => NlMsgEnum::Rtmsg(msg),
+                        _ => NlMsgEnum::MalfromedPacket
                     }
                 }
                 else if *u == rtnetlink::NrMsgType::RTM_NEWNEIGH ||
@@ -240,8 +243,8 @@ impl NlMsgEnum {
                    *u == rtnetlink::NrMsgType::RTM_GETNEIGH {
                     let o = rtnetlink::Ndmsg::read(cursor, nlmsg_len);
                     match o {
-                        Some(msg) => NlMsgEnum::Ndmsg(msg),
-                        None => NlMsgEnum::MalfromedPacket
+                        Ok(msg) => NlMsgEnum::Ndmsg(msg),
+                        _ => NlMsgEnum::MalfromedPacket
                     }
                 }
                 else if *u == rtnetlink::NrMsgType::RTM_NEWQDISC ||
@@ -255,8 +258,8 @@ impl NlMsgEnum {
                    *u == rtnetlink::NrMsgType::RTM_GETTFILTER {
                     let o = rtnetlink::Tcmsg::read(cursor, nlmsg_len);
                     match o {
-                        Some(msg) => NlMsgEnum::Tcmsg(msg),
-                        None => NlMsgEnum::MalfromedPacket
+                        Ok(msg) => NlMsgEnum::Tcmsg(msg),
+                        _ => NlMsgEnum::MalfromedPacket
                     }
                 }
                 else {
@@ -327,7 +330,7 @@ impl Default for NlMsgEnum {
 // I would prefer to use an associated constant but they are still experimental
 const NLMSG_ALIGNTO: u64 = 4;
 
-// TODO: names
+// TODO: wrap in Enum? Or just better error handling below?
 #[derive(Debug, Default)]
 pub struct NlMsg {
     pub netlink_family: netlink::NetlinkFamily,
