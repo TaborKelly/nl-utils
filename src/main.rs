@@ -88,25 +88,20 @@ fn print_packets(args: &Args) {
                 None => (),
             };
             if first {
-                print!("packet[{}] = {{ ", p);
+                print!("packet[{}] = [ ", p);
                 first = false;
             }
             else {
-                println!(",");
+                print!(",\n    ");
             }
 
-            //m.pretty_fmt(::std::fmt::Display::fmt, 4);
-            // w.write(m.pretty_fmt(w, 4);
-            print!("{}", m);
-            /*
-            try!(a.pretty_fmt(f, indent+1));
-            if count < self.ifi_attr.len() {
-                try!(write!(f, ",\n{}", i_s_p));
+            {
+                let i = nl::Indent { t: m, i: 1 };
+                print!("{}", i);
             }
-            count = count + 1;*/
         }
         if !first {
-            println!(" }}");
+            println!("\n]");
         }
     }
 }
