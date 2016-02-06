@@ -1,6 +1,6 @@
 [package]
 name = "nl-dump"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Tabor Kelly <taborkelly@gmail.com>"]
 license = "Apache-2.0/BSD-3-Clause-Clear/MIT"
 description = "A netlink (mostly RT_NETLINK) disector."
@@ -12,7 +12,7 @@ getopts = "0.2"
 log = "0.3.0"
 env_logger = "0.3.0"
 pcap = "0.5.0"
-libc = "0.1.0"
+libc = "0.2.0"
 byteorder = "0.4.0"
 enum_primitive = "0.1.0"
 num = "0.1.0"
