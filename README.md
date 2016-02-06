@@ -1,15 +1,14 @@
-# nl-utils
+## nl-dump
+In order to build `nl-dump` you must have `rust-enum-derive` (the excecutable) v0.3.3 or later in your path. eg:
 
-In order to build `nl-utils` you must have `rust-enum-derive` (the excecutable) in your path. eg:
 ```
 $ git clone https://github.com/TaborKelly/rust-enum-derive
 $ cd rust-enum-derive
 $ cargo build
 $ export PATH=$PATH:`pwd`/target/debug
 ```
-Better yet, add a symlink to rust-enum-derive somewhere that is in your path.
 
-## nl-dump
+Better yet, add a symlink to rust-enum-derive somewhere that is in your path.
 `nl-dump` is a dissector for netlink (mostly NETLINK_ROUTE) packets. It runs from the command-line to give you mostly human readable output for NETLINK_ROUTE which have been captured to a pcap file.
 
 ```
@@ -48,4 +47,5 @@ packet[1] = [ {
 packet[2] = [ {
         netlink_family: NETLINK_GENERIC,
         nlmsghdr: {
+...
 ```

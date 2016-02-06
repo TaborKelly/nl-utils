@@ -1,7 +1,10 @@
 [package]
 name = "nl-dump"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Tabor Kelly <taborkelly@gmail.com>"]
+license = "Apache-2.0/BSD-3-Clause-Clear/MIT"
+description = "A netlink (mostly RT_NETLINK) disector."
+homepage = "https://github.com/TaborKelly/nl-utils"
 build = "build.rs"
 
 [dependencies]
