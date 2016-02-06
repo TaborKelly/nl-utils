@@ -76,7 +76,7 @@ fn print_packets(args: &Args) {
     };
 
     let mut p: i32 = 0;
-    while let Some(packet) = cap.next() {
+    while let Ok(packet) = cap.next() {
         p = p + 1;
         let vec = nl::NlMsg::read(packet.data);
 
