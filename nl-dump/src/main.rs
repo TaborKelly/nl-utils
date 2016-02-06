@@ -34,7 +34,7 @@ fn parse_options() -> Args {
     let mut a = Args::default();
 
     let mut opts = Options::new();
-    opts.optopt("i", "input", "input file name", "NAME");
+    opts.optopt("i", "input", "pcap input file", "NAME");
     opts.optopt("", "netlink_family", "filter for one netlink_family (\
                 NETLINK_ROUTE, NETLINK_GENERIC, etc)", "FAMILY");
     opts.optflag("h", "help", "print this help menu");

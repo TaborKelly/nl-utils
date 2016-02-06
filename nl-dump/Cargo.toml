@@ -1,5 +1,5 @@
 [package]
-name = "nl-utils"
+name = "nl-dump"
 version = "0.1.0"
 authors = ["Tabor Kelly <taborkelly@gmail.com>"]
 build = "build.rs"
