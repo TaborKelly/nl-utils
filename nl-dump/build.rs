@@ -1,29 +1,18 @@
 use std::env;
-use std::process::Command;
+use std::path::PathBuf;
+
+extern crate rust_enum_derive;
 
 fn main() {
-    let out_dir = env::var("OUT_DIR").unwrap();
+    let output_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let input_dir = PathBuf::from("build_input/");
 
-    let r = Command::new("rust-enum-derive").args(&["--input_dir", "build_input/", "--output_dir"])
-                                            .arg(&format!("{}", out_dir)).status();
+    let r = rust_enum_derive::traverse_dir(&input_dir, &output_dir);
     match r
     {
         Err(e) => {
-            let i = e.raw_os_error();
-            match i {
-                Some(r) => {
-                    if r == 2 {
-                        panic!("You need to add rust-enum-derive to your path!");
-                    }
-                }
-                _ => ()
-            }
-            panic!("Error: {} (check to see if rust-enum-derive is in your path)", e);
+            panic!("Error: {}", e);
         }
-        Ok(status) => {
-            if status.code().unwrap() != 0 {
-                panic!("Error: {}", status);
-            }
-        }
+        Ok(_) => { }
     }
 }
